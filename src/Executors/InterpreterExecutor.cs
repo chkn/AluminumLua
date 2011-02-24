@@ -58,11 +58,6 @@ namespace AluminumLua.Executors {
 			scopes.Pop ();
 		}
 		
-		public bool IsDefined (string identifier)
-		{
-			return CurrentScope.Variables.ContainsKey (identifier);
-		}
-		
 		public void Constant (LuaObject value)
 		{
 			stack.Push (value);
@@ -99,6 +94,11 @@ namespace AluminumLua.Executors {
 				CurrentScope.SetLocal (identifier, stack.Pop ());
 			else
 				CurrentScope.SetGlobal (identifier, stack.Pop ());
+		}
+		
+		public void Return ()
+		{
+			// FIXME: This will do something once the interpreter can support uncompiled functions /:
 		}
 		
 		public LuaObject Result ()

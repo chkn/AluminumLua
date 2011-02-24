@@ -218,17 +218,9 @@ namespace AluminumLua.Executors {
 			else
 				IL.Emit (OpCodes.Call, LuaContext_SetGlobal);
 		}
-	
-		public virtual LuaObject Result ()
-		{
-			return Compile () (new LuaObject [0]);
-		}
 		
-		public LuaFunction Compile ()
+		public virtual void Return ()
 		{
-			if (compiled != null)
-				return compiled;
-			
 			if (stack.Count == 0) {
 				IL.Emit (OpCodes.Ldsfld, LuaObject_Nil);
 				
@@ -240,6 +232,19 @@ namespace AluminumLua.Executors {
 				throw new Exception ("stack height is greater than one!");
 			}
 			IL.Emit (OpCodes.Ret);
+		}
+	
+		public virtual LuaObject Result ()
+		{
+			return Compile () (new LuaObject [0]);
+		}
+		
+		public LuaFunction Compile ()
+		{
+			if (compiled != null)
+				return compiled;
+			
+			Return ();
 			
 #if DEBUG_WRITE_IL
 			typ.CreateType ();

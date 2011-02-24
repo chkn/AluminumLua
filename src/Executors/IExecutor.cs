@@ -44,6 +44,7 @@ namespace AluminumLua.Executors {
 		
 		// statements:
 		void Assign (string identifier, bool localScope);
+		void Return ();
 		
 		// to execute: (some IExecutors - like InterpreterExecutor - may have executed instructions as they came in)
 		LuaObject Result ();

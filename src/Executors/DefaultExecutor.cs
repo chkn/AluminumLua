@@ -97,6 +97,11 @@ namespace AluminumLua.Executors {
 			Target.Assign (identifier, localScope);
 		}
 		
+		public virtual void Return ()
+		{
+			Target.Return ();
+		}
+		
 		public virtual LuaObject Result ()
 		{
 			return Target.Result ();

@@ -43,7 +43,7 @@ namespace AluminumLua {
 		protected TextReader input;
 		
 		protected bool interactive, eof;
-		protected int row, col;
+		protected int row, col, scope_count;
 		
 		protected IExecutor CurrentExecutor { get; set; }
 		
@@ -88,17 +88,21 @@ namespace AluminumLua {
 				switch (identifier) {
 				
 				case "function":
+					scope_count++;
 					ParseFunctionDef ();
 					break;
 				
 				case "do":
+					scope_count++;
 					CurrentExecutor.PushScope ();
 					break;
 					
 				case "end":
-					CurrentExecutor.PopScope ();
-					if (CurrentExecutor == null)
+					if (--scope_count < 0) {
+						scope_count = 0;
 						Err ("unexpected 'end'");
+					}
+					CurrentExecutor.PopScope ();
 					break;
 					
 				case "local":
@@ -109,6 +113,7 @@ namespace AluminumLua {
 					
 				case "return":
 					ParseRVal ();
+					CurrentExecutor.Return ();
 					break;
 					
 				default:
@@ -143,11 +148,6 @@ namespace AluminumLua {
 				// function call or variable
 				
 				if (!TryFunctionCall ((string)expr)) {
-					
-					/*
-					if (!CurrentExecutor.CurrentScope.IsDefined ((string)expr))
-						Err ("unknown identifier '{0}'", expr);
-					*/
 					
 					CurrentExecutor.Variable ((string)expr);
 				}
