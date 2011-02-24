@@ -20,7 +20,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
-    <Commandlineparameters>/Users/alex/Projects/AluminumLua/premake4.lua</Commandlineparameters>
+    <Commandlineparameters>/Users/alex/Projects/AluminumLua/dofile.lua</Commandlineparameters>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
@@ -41,14 +41,20 @@
     <Compile Include="LuaContext.cs" />
     <Compile Include="Libraries\BasicLibrary.cs" />
     <Compile Include="LuaParser.cs" />
-    <Compile Include="InterpreterExecutor.cs" />
-    <Compile Include="IExecutor.cs" />
-    <Compile Include="CompilerExecutor.cs" />
-    <Compile Include="WrapperExecutor.cs" />
     <Compile Include="Libraries\IoLibrary.cs" />
+    <Compile Include="Executors\IExecutor.cs" />
+    <Compile Include="Executors\DefaultExecutor.cs" />
+    <Compile Include="Executors\InterpreterExecutor.cs" />
+    <Compile Include="Executors\WrapperExecutor.cs" />
+    <Compile Include="Executors\CompilerExecutor.cs" />
+    <Compile Include="Executors\ExpressionTrees\ExpressionCompiler.cs" />
+    <Compile Include="Executors\ExpressionTrees\ExpressionVisitor.cs" />
+    <Compile Include="LuaSettings.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <Folder Include="Libraries\" />
+    <Folder Include="Executors\" />
+    <Folder Include="Executors\ExpressionTrees\" />
   </ItemGroup>
 </Project>

@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 
+using AluminumLua.Executors;
+
 namespace AluminumLua {
 	
 	public static class MainClass {
@@ -16,13 +18,16 @@ namespace AluminumLua {
 			if (args.Any ()) { // take first arg as file name
 				parser = new LuaParser (context, args [0]);
 				parser.Parse ();
+				
 				return;
 			}
 			
 			// otherwise, run repl
+			Console.WriteLine ("AluminumLua 0.1 (c) 2011 Alex Corrado");
 			parser = new LuaParser (context);
 			while (true) {
-				try { 
+				try {
+					Console.Write ("> ");
 					parser.Parse ();
 				}
 				catch (LuaException e) { 

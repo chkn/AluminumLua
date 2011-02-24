@@ -53,21 +53,27 @@ namespace AluminumLua {
 		
 		public LuaContext ()
 		{
+			SetGlobal ("true", LuaObject.True);
+			SetGlobal ("false", LuaObject.False);
+			SetGlobal ("nil", LuaObject.Nil);
 		}
 		
 		public LuaObject Get (string name)
 		{
 			LuaObject val;
-			if (!Variables.TryGetValue (name, out val))
-				throw new LuaException (string.Format ("'{0}' is not defined", name));
-			
+			Variables.TryGetValue (name, out val);
 			return val;
+		}
+		
+		public bool IsDefined (string name)
+		{
+			return Variables.ContainsKey (name);
 		}
 		
 		public void Define (string name)
 		{
-			if (!Variables.ContainsKey (name))
-				Variables.Add (name, null);
+			if (!IsDefined (name))
+				Variables.Add (name, LuaObject.Nil);
 		}
 		
 		public void SetLocal (string name, LuaObject val)
@@ -75,12 +81,12 @@ namespace AluminumLua {
 			if (Variables.ContainsKey (name))
 				Variables.Remove (name);
 			
-			if (val != null)
+			if (!val.IsNil)
 				Variables.Add (name, val);
 		}
 		public void SetLocal (string name, LuaFunction fn)
 		{
-			SetLocal (name, new LuaObject (fn));
+			SetLocal (name, LuaObject.FromLuaFunction (fn));
 		}
 		
 		public void SetGlobal (string name, LuaObject val)
@@ -91,7 +97,7 @@ namespace AluminumLua {
 		}
 		public void SetGlobal (string name, LuaFunction fn)
 		{
-			SetGlobal (name, new LuaObject (fn));
+			SetGlobal (name, LuaObject.FromLuaFunction (fn));
 		}
 		
 		
@@ -102,7 +108,7 @@ namespace AluminumLua {
 		}
 		public void SetLocalAndParent (string name, LuaFunction fn)
 		{
-			SetLocalAndParent (name, new LuaObject (fn));
+			SetLocalAndParent (name, LuaObject.FromLuaFunction(fn));
 		}
 	}
 }

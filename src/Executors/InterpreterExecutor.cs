@@ -25,41 +25,37 @@
 using System;
 using System.Collections.Generic;
 
-namespace AluminumLua {
+namespace AluminumLua.Executors {
 	
 	public class InterpreterExecutor : IExecutor {
 		
-		public LuaContext CurrentScope { get; private set; }
-		public Stack<LuaObject> Stack { get; private set; }
+		protected Stack<LuaContext> scopes;
+		protected Stack<LuaObject>  stack;
+		
+		public LuaContext CurrentScope { get { return scopes.Peek (); } }
 		
 		public InterpreterExecutor (LuaContext ctx)
 		{
-			this.CurrentScope = ctx;
-			this.Stack = new Stack<LuaObject> ();
+			this.scopes = new Stack<LuaContext> ();
+			this.scopes.Push (ctx);
+			
+			this.stack = new Stack<LuaObject> ();
 		}
 		
-		public IExecutor PushScope ()
+		public void PushScope ()
 		{
-			return new InterpreterExecutor (new LuaContext (CurrentScope));
+			scopes.Push (new LuaContext (CurrentScope));
 		}
 		
-		public IExecutor PushFunctionScope (string identifier, string[] argNames)
+		// FIXME: We should be able to define functions in the interpreter w/o having to compile DynamicMethods
+		public void PushFunctionScope (string identifier, string [] argNames)
 		{
-			var newCtx = new LuaContext (CurrentScope);
-			
-			// we need to define the function inside itself so it can call itself recursively
-			newCtx.Define (identifier);
-			
-			return new CompilerExecutor (newCtx, argNames);
+			throw new NotSupportedException ();
 		}
 		
 		public void PopScope ()
 		{
-		}
-		
-		public void PopScopeAsFunction (string identifier)
-		{
-			throw new NotSupportedException ();
+			scopes.Pop ();
 		}
 		
 		public bool IsDefined (string identifier)
@@ -67,60 +63,51 @@ namespace AluminumLua {
 			return CurrentScope.Variables.ContainsKey (identifier);
 		}
 		
-		public IExecutor CreateExpression ()
-		{
-			return this;
-		}
-		
-		public IExecutor CreateArgumentsExpression (string functionName)
-		{
-			return this;
-		}
-		
 		public void Constant (LuaObject value)
 		{
-			Stack.Push (value);
+			stack.Push (value);
 		}
 		
 		public void Variable (string identifier)
 		{
-			LuaObject val;
-			if (!CurrentScope.Variables.TryGetValue (identifier, out val))
-				throw new LuaException (string.Format ("'{0}' is not defined", identifier));
-			
-			Stack.Push (val);
+			stack.Push (CurrentScope.Get (identifier));
 		}
 		
 		public void Call (string identifier, int argCount)
 		{
-			LuaObject val;
-			if (!CurrentScope.Variables.TryGetValue (identifier, out val))
-				throw new LuaException (string.Format ("'{0}' is not defined", identifier));
+			var val = CurrentScope.Get (identifier);
 			
 			if (!val.IsFunction)
 				throw new LuaException (string.Format ("cannot call non-function '{0}'", identifier));
 			
 			var args = new LuaObject [argCount];
-			for (var i = 0; i < args.Length; i++)
-				args [i] = Stack.Pop ();
 			
-			Stack.Push (val.AsFunction () (args));
+			for (var i = argCount - 1; i >= 0; i--)
+				args [i] = stack.Pop ();
+			
+			stack.Push (val.AsFunction () (args));
 		}
 		
 		public void PopStack ()
 		{
-			Stack.Pop ();
+			stack.Pop ();
 		}
 		
 		public void Assign (string identifier, bool localScope)
 		{
 			if (localScope)
-				CurrentScope.SetLocal (identifier, Stack.Pop ());
+				CurrentScope.SetLocal (identifier, stack.Pop ());
 			else
-				CurrentScope.SetGlobal (identifier, Stack.Pop ());
+				CurrentScope.SetGlobal (identifier, stack.Pop ());
 		}
 		
-
+		public LuaObject Result ()
+		{
+			if (stack.Count > 0)
+				return stack.Pop ();
+			
+			return LuaObject.Nil;
+		}
 		
 	}
 }

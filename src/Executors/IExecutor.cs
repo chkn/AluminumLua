@@ -1,6 +1,5 @@
 /*
-	BasicLibrary.cs: Lua Basic Library
-	http://www.lua.org/manual/5.1/manual.html#5.1
+	IExecutor.cs: Decouples execution from parsing
 	
 	Copyright (c) 2011 Alexander Corrado
   
@@ -24,61 +23,30 @@
  */
 
 using System;
-using System.Linq;
-using System.Text;
 
-using AluminumLua.Executors;
-
-namespace AluminumLua {
+namespace AluminumLua.Executors {
 	
-	public partial class LuaContext {
+	// All IExecutor implementations should have a constructor that takes a LuaContext
+	public interface IExecutor {
 		
-		public void AddBasicLibrary ()
-		{
-			SetGlobal ("print", print);
-			SetGlobal ("dofile", dofile);
-			SetGlobal ("type", type);
-		}
+		// scoping:
+		void PushScope                      ();
+		void PushFunctionScope              (string identifier, string [] argNames);
+		LuaContext CurrentScope             { get; }
+		void PopScope                       ();
+
 		
-		private LuaObject print (LuaObject [] args)
-		{
-			var first = true;
-			var buf = new StringBuilder ();
-			
-			foreach (var arg in args) {
-				
-				if (!first)
-					buf.Append ('\t');
-				
-				buf.Append (arg.ToString ());
-				first = false;
-			}
-			
-			Console.WriteLine (buf.ToString ());
-			return true;
-		}
+		// expressions:
+		void Constant                       (LuaObject value);
+		void Variable                       (string identifier);
+		void Call                           (string identifier, int argCount);
+		void PopStack                       (); // <- turn above into a statement
 		
-		private LuaObject dofile (LuaObject [] args)
-		{
-			LuaParser parser;
-			
-			var exec = LuaSettings.Executor (this);
-			var file = args.FirstOrDefault ();
-			
-			if (file.IsNil)
-				parser = new LuaParser (exec); // read from stdin
-			else
-				parser = new LuaParser (exec, file.AsString ());
-			
-			parser.Parse ();
-			
-			return exec.Result ();
-		}
+		// statements:
+		void Assign (string identifier, bool localScope);
 		
-		private LuaObject type (LuaObject [] args)
-		{
-			return Enum.GetName (typeof (LuaType), args.First ().Type);
-		}
+		// to execute: (some IExecutors - like InterpreterExecutor - may have executed instructions as they came in)
+		LuaObject Result ();
 	}
 }
 

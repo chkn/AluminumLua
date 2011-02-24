@@ -2,4 +2,4 @@
 src/bin
 *.pidb
 *.userdata
-
+*.userprefs

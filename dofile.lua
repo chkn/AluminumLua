@@ -1,4 +1,6 @@
-print "Calling dofile 'helloworld.lua' ..."
+function go ()
+	print "Calling dofile 'helloworld.lua' ..."
+	print ("Got:", dofile 'helloworld.lua')
+end
 
--- this line is printing backwards for some reason..
-print ("Got:", dofile 'helloworld.lua')
+go()

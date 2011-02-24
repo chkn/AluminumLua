@@ -33,6 +33,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
+using AluminumLua.Executors;
+
 namespace AluminumLua {
 	
 	public class LuaParser {
@@ -41,10 +43,9 @@ namespace AluminumLua {
 		protected TextReader input;
 		
 		protected bool interactive, eof;
-		protected int row, col, scopeCount;
+		protected int row, col;
 		
-		private Stack<IExecutor> executors = new Stack<IExecutor> ();
-		protected IExecutor CurrentExecutor { get { return executors.Peek (); } }
+		protected IExecutor CurrentExecutor { get; set; }
 		
 		public LuaParser (IExecutor executor, string file)
 		{
@@ -53,60 +54,51 @@ namespace AluminumLua {
 			this.row = 1;
 			this.col = 1;
 			
-			this.executors.Push (executor);
+			this.CurrentExecutor = executor;
 		}
 		
 		public LuaParser (LuaContext ctx, string file)
-			: this (new InterpreterExecutor (ctx), file)
+			: this (LuaSettings.Executor (ctx), file)
 		{
 		}
 		
 		public LuaParser (IExecutor executor)
 		{
-			this.file_name = "interactive";
+			this.file_name = "stdin";
 			this.input = new StreamReader (Console.OpenStandardInput ());
 			this.interactive = true;
 			
-			this.executors.Push (executor);
+			this.CurrentExecutor = executor;
 		}
 		
 		public LuaParser (LuaContext ctx)
-			: this (new InterpreterExecutor (ctx))
+			: this (LuaSettings.Executor (ctx))
 		{
 		}
 		
 		public void Parse ()
 		{
-			var func = new Stack<string> ();
-			
 			do {
+				
 				var identifier = ParseLVal ();
+				
 				if (eof)
 					break;
 				
 				switch (identifier) {
 				
 				case "function":
-					func.Push (ParseFunctionDef ());
+					ParseFunctionDef ();
 					break;
 				
 				case "do":
-					scopeCount++;
-					executors.Push (CurrentExecutor.PushScope ());
+					CurrentExecutor.PushScope ();
 					break;
 					
 				case "end":
-					if (func.Count > 0) {
-						CurrentExecutor.PopScopeAsFunction (func.Pop ());
-						
-					} else if (scopeCount > 0) {
-						scopeCount--;
-						CurrentExecutor.PopScope ();
-						
-					} else {
+					CurrentExecutor.PopScope ();
+					if (CurrentExecutor == null)
 						Err ("unexpected 'end'");
-					}
-					executors.Pop ();
 					break;
 					
 				case "local":
@@ -129,6 +121,7 @@ namespace AluminumLua {
 						Err ("unknown identifier '{0}'", identifier);
 					break;
 				}
+				
 			} while (!eof && !interactive);
 		}
 		
@@ -151,8 +144,10 @@ namespace AluminumLua {
 				
 				if (!TryFunctionCall ((string)expr)) {
 					
-					if (!CurrentExecutor.IsDefined ((string)expr))
+					/*
+					if (!CurrentExecutor.CurrentScope.IsDefined ((string)expr))
 						Err ("unknown identifier '{0}'", expr);
+					*/
 					
 					CurrentExecutor.Variable ((string)expr);
 				}
@@ -169,7 +164,7 @@ namespace AluminumLua {
 				return false;
 						
 			Consume ();
-			Expr (ParseRVal);
+			ParseRVal ();
 			CurrentExecutor.Assign (identifier, localScope);
 			
 			return true;
@@ -190,7 +185,6 @@ namespace AluminumLua {
 				// function call
 				
 				Consume ();
-				executors.Push (CurrentExecutor.CreateArgumentsExpression (identifier));
 				
 				next = Peek ();
 				while (next != ')') {
@@ -209,14 +203,14 @@ namespace AluminumLua {
 					}
 				}
 				
-				executors.Pop ();
 				Consume (')');
+				
 			} else {
 				
 				return false;
 			}
 			
-			if (!CurrentExecutor.IsDefined (identifier))
+			if (!CurrentExecutor.CurrentScope.IsDefined (identifier))
 				Err ("'{0}' is not defined", identifier);
 			
 			CurrentExecutor.Call (identifier, argCount);
@@ -247,7 +241,7 @@ namespace AluminumLua {
 			}
 			
 			Consume (')');
-			executors.Push (CurrentExecutor.PushFunctionScope (funcName, args.ToArray ()));
+			CurrentExecutor.PushFunctionScope (funcName, args.ToArray ());
 			return funcName;
 		}
 		
@@ -317,7 +311,7 @@ namespace AluminumLua {
 				
 				if (next == '[') {
 				    Consume ();
-					name = ConsumeStringLiteral ().ToString ();
+					name = ConsumeStringLiteral ().AsString ();
 					Consume (']');
 					Consume ('=');
 				}
@@ -348,10 +342,10 @@ namespace AluminumLua {
             }
 			
 			Consume ('}');
-            return new LuaObject (table);
+            return LuaObject.FromTable (table);
 		}
 		
-		protected LuaObject ConsumeNumberLiteral ()
+		protected LuaObject? ConsumeNumberLiteral ()
 		{
 			var next = Peek ();
 			var sb = new StringBuilder ();
@@ -364,7 +358,7 @@ namespace AluminumLua {
 			
 			double val;
 			if (double.TryParse (sb.ToString (), out val))
-				return new LuaObject (val);
+				return LuaObject.FromNumber (val);
 			
 			return null;
 		}
@@ -416,7 +410,7 @@ namespace AluminumLua {
 				next = Consume ();
 			}
 			
-			return new LuaObject (sb.ToString ());
+			return LuaObject.FromString (sb.ToString ());
 		}
 		
 		protected string ConsumeIdentifier ()
@@ -516,19 +510,6 @@ namespace AluminumLua {
 		
 		// convenience methods:
 		
-		protected IExecutor Expr (Action parse)
-		{
-			executors.Push (CurrentExecutor.CreateExpression ());
-			parse ();
-			return executors.Pop ();
-		}
-		
-		protected IExecutor Args (string func, Action parse)
-		{
-			executors.Push (CurrentExecutor.CreateArgumentsExpression (func));
-			parse ();
-			return executors.Pop ();
-		}
 		
 		protected void Err (string message, params object [] args)
 		{

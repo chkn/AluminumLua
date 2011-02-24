@@ -1,5 +1,5 @@
 /*
-	IExecutor.cs: Decouples execution from parsing
+	WrapperExecutor.cs: Apply simple aspects to an IExecutor
 	
 	Copyright (c) 2011 Alexander Corrado
   
@@ -24,28 +24,50 @@
 
 using System;
 
-namespace AluminumLua {
+namespace AluminumLua.Executors {
 	
-	public interface IExecutor {
+	public class WrapperExecutor : DefaultExecutor {
 		
-		// scoping:
-		IExecutor PushScope                 ();
-		IExecutor PushFunctionScope         (string identifier, string [] argNames);
-		void PopScope                       ();
-		void PopScopeAsFunction             (string identifier);
-		bool IsDefined                      (string identifier);
+		public Action BeforeExpression { get; set; }
+		public Action AfterExpression  { get; set; }
 		
-		// expressions:
-		IExecutor CreateExpression          ();
-		IExecutor CreateArgumentsExpression (string functionName);
-		void Constant                       (LuaObject value);
-		void Variable                       (string identifier);
-		void Call                           (string identifier, int argCount);
-		void PopStack                       (); // <- used when return value of function is not used
+		public WrapperExecutor (IExecutor wrapped) : base ()
+		{
+			this.executors.Push (wrapped);
+		}
 		
-		// statements:
-		void Assign (string identifier, bool localScope);
+		public override void Constant (LuaObject value)
+		{
+			DoBeforeExpression ();
+			base.Constant (value);
+			DoAfterExpression ();
+		}
 		
+		public override void Variable (string identifier)
+		{
+			DoBeforeExpression ();
+			base.Variable (identifier);
+			DoAfterExpression ();
+		}
+		
+		public override void Call (string identifier, int argCount)
+		{
+			DoBeforeExpression ();
+			base.Call (identifier, argCount);
+			DoAfterExpression ();
+		}
+		
+		private void DoBeforeExpression ()
+		{
+			if (executors.Count == 1 && BeforeExpression != null)
+				BeforeExpression ();
+		}
+		
+		private void DoAfterExpression ()
+		{
+			if (executors.Count == 1 && AfterExpression != null)
+				AfterExpression ();
+		}
 	}
 }
 

@@ -51,7 +51,7 @@ namespace AluminumLua {
 				
 			}
 			
-			return null;
+			return true;
 		}
 		
 	}

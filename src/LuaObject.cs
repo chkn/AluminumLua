@@ -43,67 +43,82 @@ namespace AluminumLua {
 	
 	public delegate LuaObject LuaFunction (LuaObject [] args);
 	
-	 public class LuaObject : IEnumerable<LuaObject> {
-        private object luaobj;
+	public struct LuaObject : IEnumerable<LuaObject> {
+		private object luaobj;
 		private LuaType type;
+		
+		// pre-create some common values
+		public static readonly LuaObject Nil         = new LuaObject ();
+		public static readonly LuaObject True        = new LuaObject { luaobj = true, type = LuaType.boolean };
+		public static readonly LuaObject False       = new LuaObject { luaobj = false, type = LuaType.boolean };
+		public static readonly LuaObject Zero        = new LuaObject { luaobj = 0d, type = LuaType.number };
+		public static readonly LuaObject EmptyString = new LuaObject { luaobj = "", type = LuaType.@string };
+		
+		public LuaType Type { get { return type; } }
 		
 		public bool Is (LuaType type)
 		{
 			return this.type == type;
 		}
 		
-		public LuaType Type { get { return type; } }
 		
-		public LuaObject (bool bln)
+		public static LuaObject FromBool (bool bln)
 		{
-			luaobj = bln;
-			type = LuaType.boolean;
+			if (bln)
+				return True;
+			
+			return False;
 		}
 		public static implicit operator LuaObject (bool bln)
 		{
-			return new LuaObject (bln);
+			return FromBool (bln);
 		}
 		
-		public LuaObject (double number)
+		public static LuaObject FromNumber (double number)
 		{
-			luaobj = number;
-			type = LuaType.number;
+			if (number == 0d)
+				return Zero;
+			
+			return new LuaObject { luaobj = number, type = LuaType.number };
 		}
 		public static implicit operator LuaObject (double number)
 		{
-			return new LuaObject (number);
+			return FromNumber (number);
 		}
 		
-		public LuaObject (string str)
+		public static LuaObject FromString (string str)
 		{
-			if (str != null) {
-				luaobj = str;
-				type = LuaType.@string;
-			}
+			if (str == null)
+				return Nil;
+			
+			if (str.Length == 0)
+				return EmptyString;
+			
+			return new LuaObject { luaobj = str, type = LuaType.@string };
 		}
 		public static implicit operator LuaObject (string str)
 		{
-			return new LuaObject (str);
+			return FromString (str);
 		}
 		
-		public LuaObject (IDictionary<string,LuaObject> table)
+		public static LuaObject FromTable (IDictionary<string,LuaObject> table)
 		{
-			if (table != null) {
-				luaobj = table;
-				type = LuaType.table;
-			}
+			if (table == null)
+				return Nil;
+			
+			return new LuaObject { luaobj = table, type = LuaType.table };
 		}
 		
-		public LuaObject (LuaFunction fn)
+		public static LuaObject FromLuaFunction (LuaFunction fn)
 		{
-			if (fn != null) {
-				luaobj = fn;
-				type = LuaType.function;
-			}
+			if (fn == null)
+				return Nil;
+			
+			return new LuaObject { luaobj = fn, type = LuaType.function };
 		}
 		public static implicit operator LuaObject (LuaFunction fn)
 		{
-			return new LuaObject (fn);
+			return FromLuaFunction (fn);
 		}
 		
 		public bool IsNil      { get { return type == LuaType.nil; } }
@@ -169,10 +184,8 @@ namespace AluminumLua {
         {
             get {				
 				LuaObject result;
-				if (AsTable ().TryGetValue (index, out result))
-					return result;
-				
-				return null;
+				AsTable ().TryGetValue (index, out result);
+				return result;
             }
         }
 
@@ -184,7 +197,7 @@ namespace AluminumLua {
 			if (IsTable)
 				return "{ " + string.Join (", ", AsTable ().Select (kv => string.Format ("[\"{0}\"]={1}", kv.Key, kv.Value.ToString ())).ToArray ()) + " }";
 			
-			return IsString? "\"" + (string)luaobj + "\"" : luaobj.ToString ();
+			return luaobj.ToString ();
 		}
 
     }

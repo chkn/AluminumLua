@@ -1,6 +1,5 @@
 /*
-	BasicLibrary.cs: Lua Basic Library
-	http://www.lua.org/manual/5.1/manual.html#5.1
+	LuaSettings.cs: Represents settings that can be changed by the hosting program
 	
 	Copyright (c) 2011 Alexander Corrado
   
@@ -24,61 +23,16 @@
  */
 
 using System;
-using System.Linq;
-using System.Text;
 
 using AluminumLua.Executors;
 
 namespace AluminumLua {
 	
-	public partial class LuaContext {
+	public static class LuaSettings {
 		
-		public void AddBasicLibrary ()
-		{
-			SetGlobal ("print", print);
-			SetGlobal ("dofile", dofile);
-			SetGlobal ("type", type);
-		}
 		
-		private LuaObject print (LuaObject [] args)
-		{
-			var first = true;
-			var buf = new StringBuilder ();
-			
-			foreach (var arg in args) {
-				
-				if (!first)
-					buf.Append ('\t');
-				
-				buf.Append (arg.ToString ());
-				first = false;
-			}
-			
-			Console.WriteLine (buf.ToString ());
-			return true;
-		}
+		public static Func<LuaContext,IExecutor> Executor = (ctx) => new DefaultExecutor (ctx);
 		
-		private LuaObject dofile (LuaObject [] args)
-		{
-			LuaParser parser;
-			
-			var exec = LuaSettings.Executor (this);
-			var file = args.FirstOrDefault ();
-			
-			if (file.IsNil)
-				parser = new LuaParser (exec); // read from stdin
-			else
-				parser = new LuaParser (exec, file.AsString ());
-			
-			parser.Parse ();
-			
-			return exec.Result ();
-		}
-		
-		private LuaObject type (LuaObject [] args)
-		{
-			return Enum.GetName (typeof (LuaType), args.First ().Type);
-		}
 	}
 }
 
