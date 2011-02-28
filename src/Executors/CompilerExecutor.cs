@@ -36,20 +36,35 @@ using AluminumLua.Executors.ExpressionTrees;
 
 namespace AluminumLua.Executors {
 	
+	using LuaTable     = IDictionary<LuaObject,LuaObject>;
+	using LuaTableItem = KeyValuePair<LuaObject,LuaObject>;
+	
 	public class CompilerExecutor : IExecutor {
 		
 		// all non-typesafe reflection here please
+		private static readonly ConstructorInfo New_LuaContext  = typeof (LuaContext).GetConstructor (new Type [] { typeof (LuaContext) });
 		private static readonly MethodInfo LuaContext_Get       = typeof (LuaContext).GetMethod ("Get");
 		private static readonly MethodInfo LuaContext_SetLocal  = typeof (LuaContext).GetMethod ("SetLocal", new Type [] { typeof (string), typeof (LuaObject) });
 		private static readonly MethodInfo LuaContext_SetGlobal = typeof (LuaContext).GetMethod ("SetGlobal", new Type [] { typeof (string), typeof (LuaObject) });
 		
-		private static readonly FieldInfo  LuaObject_Nil        = typeof (LuaObject).GetField  ("Nil", BindingFlags.Public | BindingFlags.Static);
-		private static readonly MethodInfo LuaObject_FromString = typeof (LuaObject).GetMethod ("FromString", BindingFlags.Public | BindingFlags.Static);
-		private static readonly MethodInfo LuaObject_FromNumber = typeof (LuaObject).GetMethod ("FromNumber", BindingFlags.Public | BindingFlags.Static);
-		private static readonly MethodInfo LuaObject_FromTable  = typeof (LuaObject).GetMethod ("FromTable" , BindingFlags.Public | BindingFlags.Static);
-		private static readonly MethodInfo LuaObject_AsFunction = typeof (LuaObject).GetMethod ("AsFunction");
+		private static readonly FieldInfo  LuaObject_Nil         = typeof (LuaObject).GetField  ("Nil", BindingFlags.Public | BindingFlags.Static);
+		private static readonly MethodInfo LuaObject_FromString  = typeof (LuaObject).GetMethod ("FromString", BindingFlags.Public | BindingFlags.Static);
+		private static readonly MethodInfo LuaObject_FromNumber  = typeof (LuaObject).GetMethod ("FromNumber", BindingFlags.Public | BindingFlags.Static);
+		private static readonly MethodInfo LuaObject_FromBool    = typeof (LuaObject).GetMethod ("FromBool", BindingFlags.Public | BindingFlags.Static);
 		
-		private static readonly MethodInfo LuaFunction_Invoke = typeof (LuaFunction).GetMethod ("Invoke");
+		private static readonly MethodInfo LuaObject_AsString    = typeof (LuaObject).GetMethod ("AsString");
+		private static readonly MethodInfo LuaObject_AsBool      = typeof (LuaObject).GetMethod ("AsBool");
+		private static readonly MethodInfo LuaObject_AsNumber    = typeof (LuaObject).GetMethod ("AsNumber");
+		private static readonly MethodInfo LuaObject_AsFunction  = typeof (LuaObject).GetMethod ("AsFunction");
+		private static readonly MethodInfo LuaFunction_Invoke    = typeof (LuaFunction).GetMethod ("Invoke");
+		
+		private static readonly MethodInfo LuaObject_this_get    = typeof (LuaObject).GetProperty ("Item").GetGetMethod ();
+		private static readonly MethodInfo LuaObject_this_set    = typeof (LuaObject).GetProperty ("Item").GetSetMethod ();
+
+		private static readonly MethodInfo LuaObject_NewTable    = typeof (LuaObject).GetMethod ("NewTable", BindingFlags.Public | BindingFlags.Static);
+		private static readonly ConstructorInfo New_LuaTableItem = typeof (LuaTableItem).GetConstructor (new Type [] { typeof (LuaObject), typeof (LuaObject) });
+		
+		private static readonly MethodInfo String_Concat = typeof (string).GetMethod ("Concat", new Type [] { typeof (string), typeof (string) });
 		
 #if DEBUG_WRITE_IL
 		private static AssemblyBuilder asm;
@@ -57,25 +72,20 @@ namespace AluminumLua.Executors {
 #else
 		private DynamicMethod method;
 #endif
-		private string functionName;
-		private LuaFunction compiled;
+
+		private LuaFunction compiled;		
 		
 		protected Stack<LuaContext>  scopes;
 		protected Stack<Expression>  stack;
 		protected ILGenerator        IL;
 		
-		protected ExpressionCompiler expressionCompiler;
+		protected ExpressionCompiler expression_compiler;
 		protected ParameterExpression ctx, args;
+
 		
 		public LuaContext CurrentScope { get { return scopes.Peek (); } }
 		
 		public CompilerExecutor (LuaContext ctx)
-			: this (ctx, "dyn-" + Guid.NewGuid ())
-		{
-			this.functionName = null;
-		}
-		
-		public CompilerExecutor (LuaContext ctx, string functionName)
 		{
 #if DEBUG_WRITE_IL
 			if (asm == null) {
@@ -83,11 +93,10 @@ namespace AluminumLua.Executors {
 				var mod = asm.DefineDynamicModule ("Debug_IL_Output.dll", "Debug_IL_Output.dll", true);
 				typ = mod.DefineType ("DummyType");
 			}
-			var method = typ.DefineMethod (functionName, MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, typeof (LuaObject), new Type [] { typeof (LuaContext), typeof (LuaObject[]) });
+			var method = typ.DefineMethod ("dyn-" + Guid.NewGuid (), MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, typeof (LuaObject), new Type [] { typeof (LuaContext), typeof (LuaObject[]) });
 #else
-			this.method = new DynamicMethod (functionName, typeof (LuaObject), new Type [] { typeof (LuaContext), typeof (LuaObject[]) });
+			this.method = new DynamicMethod ("dyn-" + Guid.NewGuid (), typeof (LuaObject), new Type [] { typeof (LuaContext), typeof (LuaObject[]) });
 #endif
-			this.functionName = functionName;
 			this.scopes = new Stack<LuaContext> ();
 			this.scopes.Push (ctx);
 			
@@ -96,11 +105,11 @@ namespace AluminumLua.Executors {
 			
 			this.ctx  = Expression.Parameter (typeof (LuaContext), "ctx");
 			this.args = Expression.Parameter (typeof (LuaObject[]), "args");
-			this.expressionCompiler = new ExpressionCompiler (IL, this.ctx, this.args);
+			this.expression_compiler = new ExpressionCompiler (IL, this.ctx, this.args);
 		}
 		
-		public CompilerExecutor (LuaContext ctx, string functionName, string [] argNames)
-			: this (ctx, functionName)
+		public CompilerExecutor (LuaContext ctx, string [] argNames)
+			: this (ctx)
 		{
 			if (argNames.Length == 0)
 				return;
@@ -137,16 +146,18 @@ namespace AluminumLua.Executors {
 			scopes.Push (new LuaContext (CurrentScope));
 		}
 		
-		public virtual void PushFunctionScope (string identifier, string[] argNames)
+		public virtual void PushBlockScope ()
+		{
+			throw new NotSupportedException ();
+		}
+		
+		public virtual void PushFunctionScope (string[] argNames)
 		{
 			throw new NotSupportedException ();
 		}
 		
 		public virtual void PopScope ()
 		{
-			if (scopes.Count == 1 && functionName != null) // we are ending this function
-				CurrentScope.SetLocalAndParent (functionName, Compile ());
-			
 			scopes.Pop ();
 		}
 		
@@ -162,18 +173,17 @@ namespace AluminumLua.Executors {
 				stack.Push (Expression.Call (LuaObject_FromNumber, Expression.Constant (value.AsNumber ())));
 				break;
 				
-			case LuaType.table:
-				stack.Push (ConstantTableExpression (value.AsTable ()));
+			case LuaType.function:
+				// FIXME: we're actually creating a variable here..
+				var fn = value.AsFunction ();
+				var name = fn.Method.Name;
+				CurrentScope.SetLocal (name, fn);
+				Variable (name);
 				break;
 				
 			default:
 				throw new NotSupportedException (value.Type.ToString ());
 			}
-		}
-				         
-		private Expression ConstantTableExpression (IDictionary<string,LuaObject> table)
-		{
-			throw new NotImplementedException ();
 		}
 		
 		public virtual void Variable (string identifier)
@@ -181,7 +191,7 @@ namespace AluminumLua.Executors {
 			stack.Push (Expression.Call (ctx, LuaContext_Get, Expression.Constant (identifier)));
 		}
 		
-		public virtual void Call (string identifier, int argCount)
+		public virtual void Call (int argCount)
 		{
 			var args = new Expression [argCount];
 			
@@ -190,17 +200,82 @@ namespace AluminumLua.Executors {
 				args [i] = stack.Pop ();
 			
 			// push function object
-			Variable (identifier);
 			stack.Push (Expression.Call (stack.Pop (), LuaObject_AsFunction));
 			
 			// call function
 			stack.Push (Expression.Call (stack.Pop (), LuaFunction_Invoke, Expression.NewArrayInit (typeof (LuaObject), args)));
 		}
 		
+		public virtual void TableCreate (int initCount)
+		{
+			var items = new Expression [initCount];
+			
+			// load up constructor items
+			for (var i = 0; i < initCount; i++) {
+				var value = stack.Pop ();
+				var key = stack.Pop ();
+				
+				items [i] = Expression.New (New_LuaTableItem, key, value);
+			}
+
+			stack.Push (Expression.Call (LuaObject_NewTable, Expression.NewArrayInit (typeof (LuaTableItem), items)));
+		}
+		
+		public virtual void TableGet ()
+		{
+			var key = stack.Pop ();
+			stack.Push (Expression.Call (stack.Pop (), LuaObject_this_get, key));
+		}
+		
+		public virtual void Concatenate ()
+		{
+			var val2 = Expression.Call (stack.Pop (), LuaObject_AsString);
+			var val1 = Expression.Call (stack.Pop (), LuaObject_AsString);
+			
+			stack.Push (Expression.Call (LuaObject_FromString, Expression.Call (String_Concat, val1, val2)));
+		}
+		
+		public virtual void Negate ()
+		{
+			stack.Push (Expression.Call (LuaObject_FromBool, Expression.Negate (Expression.Call (stack.Pop (), LuaObject_AsBool))));
+		}
+		
+		public virtual void Add ()
+		{
+			var val2 = Expression.Call (stack.Pop (), LuaObject_AsNumber);
+			var val1 = Expression.Call (stack.Pop (), LuaObject_AsNumber);
+			
+			stack.Push (Expression.Call (LuaObject_FromNumber, Expression.Add (val1, val2)));
+		}
+		
+		public virtual void Subtract ()
+		{
+			var val2 = Expression.Call (stack.Pop (), LuaObject_AsNumber);
+			var val1 = Expression.Call (stack.Pop (), LuaObject_AsNumber);
+			
+			stack.Push (Expression.Call (LuaObject_FromNumber, Expression.Subtract (val1, val2)));			
+		}
+		
+		public virtual void Multiply ()
+		{
+			var val2 = Expression.Call (stack.Pop (), LuaObject_AsNumber);
+			var val1 = Expression.Call (stack.Pop (), LuaObject_AsNumber);
+			
+			stack.Push (Expression.Call (LuaObject_FromNumber, Expression.Multiply (val1, val2)));
+		}
+		
+		public virtual void Divide ()
+		{
+			var val2 = Expression.Call (stack.Pop (), LuaObject_AsNumber);
+			var val1 = Expression.Call (stack.Pop (), LuaObject_AsNumber);
+			
+			stack.Push (Expression.Call (LuaObject_FromNumber, Expression.Divide (val1, val2)));
+		}
+		
 		public virtual void PopStack ()
 		{
 			// turn last expression into a statement
-			expressionCompiler.Compile (stack.Pop ());
+			expression_compiler.Compile (stack.Pop ());
 			IL.Emit (OpCodes.Pop);
 		}
 		
@@ -210,7 +285,7 @@ namespace AluminumLua.Executors {
 			
 			IL.Emit (OpCodes.Ldarg_0);
 			IL.Emit (OpCodes.Ldstr, identifier);
-			expressionCompiler.Compile (stack.Pop ());
+			expression_compiler.Compile (stack.Pop ());
 			
 			if (localScope) 
 				IL.Emit (OpCodes.Call, LuaContext_SetLocal);
@@ -219,13 +294,21 @@ namespace AluminumLua.Executors {
 				IL.Emit (OpCodes.Call, LuaContext_SetGlobal);
 		}
 		
+		public virtual void TableSet ()
+		{
+			var val = stack.Pop ();
+			var key = stack.Pop ();
+			
+			expression_compiler.Compile (Expression.Call (stack.Pop (), LuaObject_this_set, key, val));
+		}
+		
 		public virtual void Return ()
 		{
 			if (stack.Count == 0) {
 				IL.Emit (OpCodes.Ldsfld, LuaObject_Nil);
 				
 			} else if (stack.Count == 1) {
-				expressionCompiler.Compile (stack.Pop ());
+				expression_compiler.Compile (stack.Pop ());
 				
 			} else {
 				
@@ -233,7 +316,7 @@ namespace AluminumLua.Executors {
 			}
 			IL.Emit (OpCodes.Ret);
 		}
-	
+		
 		public virtual LuaObject Result ()
 		{
 			return Compile () (new LuaObject [0]);

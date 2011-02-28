@@ -28,7 +28,7 @@ namespace AluminumLua {
 			while (true) {
 				try {
 					Console.Write ("> ");
-					parser.Parse ();
+					parser.Parse (true);
 				}
 				catch (LuaException e) { 
 					Console.WriteLine (e.Message);

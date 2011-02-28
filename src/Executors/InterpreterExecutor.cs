@@ -42,53 +42,119 @@ namespace AluminumLua.Executors {
 			this.stack = new Stack<LuaObject> ();
 		}
 		
-		public void PushScope ()
+		public virtual void PushScope ()
 		{
 			scopes.Push (new LuaContext (CurrentScope));
 		}
 		
-		// FIXME: We should be able to define functions in the interpreter w/o having to compile DynamicMethods
-		public void PushFunctionScope (string identifier, string [] argNames)
+		public virtual void PushBlockScope ()
 		{
 			throw new NotSupportedException ();
 		}
 		
-		public void PopScope ()
+		public virtual void PushFunctionScope (string [] argNames)
+		{
+			throw new NotSupportedException ();
+		}
+		
+		public virtual void PopScope ()
 		{
 			scopes.Pop ();
 		}
 		
-		public void Constant (LuaObject value)
+		public virtual void Constant (LuaObject value)
 		{
 			stack.Push (value);
 		}
 		
-		public void Variable (string identifier)
+		public virtual void Variable (string identifier)
 		{
 			stack.Push (CurrentScope.Get (identifier));
 		}
 		
-		public void Call (string identifier, int argCount)
+		public virtual void Call (int argCount)
 		{
-			var val = CurrentScope.Get (identifier);
-			
-			if (!val.IsFunction)
-				throw new LuaException (string.Format ("cannot call non-function '{0}'", identifier));
-			
 			var args = new LuaObject [argCount];
 			
 			for (var i = argCount - 1; i >= 0; i--)
 				args [i] = stack.Pop ();
 			
-			stack.Push (val.AsFunction () (args));
+			stack.Push (stack.Pop ().AsFunction () (args));
 		}
 		
-		public void PopStack ()
+		public virtual void TableCreate (int initCount)
+		{
+			var table = LuaObject.NewTable ();
+			
+			for (var i = 0; i < initCount; i++) {
+				var value = stack.Pop ();
+				var key = stack.Pop ();
+				
+				table [key] = value;
+			}
+			
+			stack.Push (table);
+		}
+		
+		public virtual void TableGet ()
+		{
+			var key = stack.Pop ();
+			var table = stack.Pop ();
+			stack.Push (table [key]);
+		}
+		
+		public virtual void Concatenate ()
+		{
+			var val2 = stack.Pop ().AsString ();
+			var val1 = stack.Pop ().AsString ();
+			
+			stack.Push (LuaObject.FromString (string.Concat (val1, val2)));
+		}
+		
+		public virtual void Negate ()
+		{
+			var val = stack.Pop ().AsBool ();
+			stack.Push (LuaObject.FromBool (!val));
+		}
+		
+		public virtual void Add ()
+		{
+			var val2 = stack.Pop ().AsNumber ();
+			var val1 = stack.Pop ().AsNumber ();
+			
+			stack.Push (LuaObject.FromNumber (val1 + val2));
+		}
+		
+		public virtual void Subtract ()
+		{
+			var val2 = stack.Pop ().AsNumber ();
+			var val1 = stack.Pop ().AsNumber ();
+			
+			stack.Push (LuaObject.FromNumber (val1 - val2));
+		}
+		
+		public virtual void Multiply ()
+		{
+			var val2 = stack.Pop ().AsNumber ();
+			var val1 = stack.Pop ().AsNumber ();
+			
+			stack.Push (LuaObject.FromNumber (val1 * val2));
+		}
+		
+		public virtual void Divide ()
+		{
+			var val2 = stack.Pop ().AsNumber ();
+			var val1 = stack.Pop ().AsNumber ();
+			
+			stack.Push (LuaObject.FromNumber (val1 / val2));
+		}
+		
+		public virtual void PopStack ()
 		{
 			stack.Pop ();
 		}
 		
-		public void Assign (string identifier, bool localScope)
+		public virtual void Assign (string identifier, bool localScope)
 		{
 			if (localScope)
 				CurrentScope.SetLocal (identifier, stack.Pop ());
@@ -96,12 +162,21 @@ namespace AluminumLua.Executors {
 				CurrentScope.SetGlobal (identifier, stack.Pop ());
 		}
 		
-		public void Return ()
+		public virtual void TableSet ()
+		{
+			var value = stack.Pop ();
+			var key = stack.Pop ();
+			var table = stack.Pop ();
+			
+			table [key] = value;
+		}
+		
+		public virtual void Return ()
 		{
 			// FIXME: This will do something once the interpreter can support uncompiled functions /:
 		}
 		
-		public LuaObject Result ()
+		public virtual LuaObject Result ()
 		{
 			if (stack.Count > 0)
 				return stack.Pop ();

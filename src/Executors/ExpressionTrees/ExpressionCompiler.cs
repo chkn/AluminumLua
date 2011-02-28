@@ -33,6 +33,9 @@ namespace AluminumLua.Executors.ExpressionTrees {
 	
 	public class ExpressionCompiler : ExpressionVisitor {
 		
+		private static readonly MethodInfo Type_GetTypeFromHandle = typeof (Type).GetMethod ("GetTypeFromHandle", BindingFlags.Public | BindingFlags.Static);
+		private static readonly MethodInfo MethodBase_GetMethodFromHandle = typeof (MethodBase).GetMethod ("GetMethodFromHandle", new Type [] { typeof (RuntimeMethodHandle) });
+		
 		protected ILGenerator                   IL;
 		protected string []                     arg_names;
 		protected Dictionary<Type,LocalBuilder> registers;
@@ -81,13 +84,50 @@ namespace AluminumLua.Executors.ExpressionTrees {
 			else if (c.Value is double)
 				IL.Emit (OpCodes.Ldc_R8, (double)c.Value);
 			
-			else
+			else if (c.Value is Type) {
+				IL.Emit (OpCodes.Ldtoken, (Type)c.Value);
+				IL.Emit (OpCodes.Call, Type_GetTypeFromHandle);
+			
+			} else if (c.Value is MethodInfo) {
+				IL.Emit (OpCodes.Ldtoken, (MethodInfo)c.Value);
+				IL.Emit (OpCodes.Call, MethodBase_GetMethodFromHandle);
+				IL.Emit (OpCodes.Castclass, typeof (MethodInfo));
+				
+			} else
 				throw new NotSupportedException (c.Value.GetType ().FullName);
 		}
 		
 		protected override void VisitParameter (ParameterExpression p)
 		{
 			IL.Emit (OpCodes.Ldarg, Array.IndexOf (arg_names, p.Name));
+		}
+		
+		protected override void VisitBinary (BinaryExpression b)
+		{
+			Visit (b.Left);
+			Visit (b.Right);
+			
+			switch (b.NodeType) {
+			
+			case ExpressionType.Add:
+				IL.Emit (OpCodes.Add);
+				break;
+			
+			case ExpressionType.Subtract:
+				IL.Emit (OpCodes.Sub);
+				break;
+				
+			case ExpressionType.Multiply:
+				IL.Emit (OpCodes.Mul);
+				break;
+				
+			case ExpressionType.Divide:
+				IL.Emit (OpCodes.Div);
+				break;
+				
+			default:
+				throw new NotImplementedException (b.Type.ToString ());
+			}
 		}
 		
 		protected override void VisitMethodCall (MethodCallExpression m)
@@ -113,6 +153,14 @@ namespace AluminumLua.Executors.ExpressionTrees {
 			
 			if (reg != null)
 				UnlockRegister (reg);
+		}
+		
+		protected override void VisitNew (NewExpression nex)
+		{
+			foreach (var arg in nex.Arguments)
+				Visit (arg);
+			
+			IL.Emit (OpCodes.Newobj, nex.Constructor);
 		}
 		
 		protected override void VisitNewArray (NewArrayExpression na)

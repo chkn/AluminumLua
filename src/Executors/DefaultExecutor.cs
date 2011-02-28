@@ -55,19 +55,25 @@ namespace AluminumLua.Executors {
 			executors.Push (current);
 		}
 		
-		public virtual void PushFunctionScope (string identifier, string [] argNames)
+		public virtual void PushBlockScope ()
 		{
-			var newCtx = new LuaContext (CurrentScope);
-			
-			// make sure function's name is defined inside itself!
-			newCtx.Define (identifier);
-			
-			executors.Push (new CompilerExecutor (newCtx, identifier, argNames));
+			executors.Push (new CompilerExecutor (new LuaContext (CurrentScope)));
+		}
+		
+		public virtual void PushFunctionScope (string [] argNames)
+		{
+			executors.Push (new CompilerExecutor (new LuaContext (CurrentScope), argNames));
 		}
 		
 		public virtual void PopScope ()
 		{
-			executors.Pop ().PopScope ();
+			var old = executors.Pop ();
+			var fn  = old as CompilerExecutor;
+			
+			if (fn != null)
+				Target.Constant (LuaObject.FromFunction (fn.Compile ()));
+			
+			old.PopScope ();
 		}
 		
 		// expressions:
@@ -81,9 +87,49 @@ namespace AluminumLua.Executors {
 			Target.Variable (identifier);
 		}
 		
-		public virtual void Call (string identifier, int argCount)
+		public virtual void Call (int argCount)
 		{
-			Target.Call (identifier, argCount);
+			Target.Call (argCount);
+		}
+		
+		public virtual void TableCreate (int initCount)
+		{
+			Target.TableCreate (initCount);
+		}
+		
+		public virtual void TableGet ()
+		{
+			Target.TableGet ();
+		}
+		
+		public virtual void Concatenate ()
+		{
+			Target.Concatenate ();
+		}
+		
+		public virtual void Negate ()
+		{
+			Target.Negate ();
+		}
+		
+		public virtual void Add ()
+		{
+			Target.Add ();
+		}
+		
+		public virtual void Subtract ()
+		{
+			Target.Subtract ();
+		}
+		
+		public virtual void Multiply ()
+		{
+			Target.Multiply ();
+		}
+		
+		public virtual void Divide ()
+		{
+			Target.Divide ();
 		}
 		
 		public virtual void PopStack ()
@@ -95,6 +141,11 @@ namespace AluminumLua.Executors {
 		public virtual void Assign (string identifier, bool localScope)
 		{
 			Target.Assign (identifier, localScope);
+		}
+		
+		public virtual void TableSet ()
+		{
+			Target.TableSet ();
 		}
 		
 		public virtual void Return ()

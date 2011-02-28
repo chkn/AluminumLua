@@ -86,7 +86,7 @@ namespace AluminumLua {
 		}
 		public void SetLocal (string name, LuaFunction fn)
 		{
-			SetLocal (name, LuaObject.FromLuaFunction (fn));
+			SetLocal (name, LuaObject.FromFunction (fn));
 		}
 		
 		public void SetGlobal (string name, LuaObject val)
@@ -97,7 +97,7 @@ namespace AluminumLua {
 		}
 		public void SetGlobal (string name, LuaFunction fn)
 		{
-			SetGlobal (name, LuaObject.FromLuaFunction (fn));
+			SetGlobal (name, LuaObject.FromFunction (fn));
 		}
 		
 		
@@ -108,7 +108,7 @@ namespace AluminumLua {
 		}
 		public void SetLocalAndParent (string name, LuaFunction fn)
 		{
-			SetLocalAndParent (name, LuaObject.FromLuaFunction(fn));
+			SetLocalAndParent (name, LuaObject.FromFunction(fn));
 		}
 	}
 }

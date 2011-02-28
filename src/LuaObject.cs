@@ -29,6 +29,12 @@ using System.Collections.Generic;
 
 namespace AluminumLua {
 	
+	using LuaTable     = IDictionary<LuaObject,LuaObject>;
+	using LuaTableImpl = Dictionary<LuaObject,LuaObject>;
+	using LuaTableItem = KeyValuePair<LuaObject,LuaObject>;
+	
+	public delegate LuaObject LuaFunction (LuaObject [] args);
+	
 	// http://www.lua.org/pil/2.html
 	public enum LuaType {
 		nil,
@@ -41,9 +47,8 @@ namespace AluminumLua {
 		table
 	};
 	
-	public delegate LuaObject LuaFunction (LuaObject [] args);
-	
-	public struct LuaObject : IEnumerable<LuaObject> {
+	public struct LuaObject : IEnumerable<KeyValuePair<LuaObject,LuaObject>>, IEquatable<LuaObject>	{
+		
 		private object luaobj;
 		private LuaType type;
 		
@@ -101,15 +106,24 @@ namespace AluminumLua {
 			return FromString (str);
 		}
 		
-		public static LuaObject FromTable (IDictionary<string,LuaObject> table)
+		public static LuaObject FromTable (LuaTable table)
 		{
 			if (table == null)
 				return Nil;
 			
 			return new LuaObject { luaobj = table, type = LuaType.table };
 		}
+		public static LuaObject NewTable (params LuaTableItem [] initItems)
+		{
+			var table = FromTable (new LuaTableImpl ());
+			
+			foreach (var item in initItems)
+				table [item.Key] = item.Value;
+			
+			return table;
+		}
 		
-		public static LuaObject FromLuaFunction (LuaFunction fn)
+		public static LuaObject FromFunction (LuaFunction fn)
 		{
 			if (fn == null)
 				return Nil;
@@ -118,7 +132,7 @@ namespace AluminumLua {
 		}
 		public static implicit operator LuaObject (LuaFunction fn)
 		{
-			return FromLuaFunction (fn);
+			return FromFunction (fn);
 		}
 		
 		public bool IsNil      { get { return type == LuaType.nil; } }
@@ -158,14 +172,18 @@ namespace AluminumLua {
 		}
 		
 		public bool IsTable    { get { return type == LuaType.table; } }
-		public IDictionary<string,LuaObject> AsTable () {
-			return luaobj as IDictionary<string,LuaObject>;
+		public LuaTable AsTable () {
+			return luaobj as LuaTable;
 		}
 
 		
-        public IEnumerator<LuaObject> GetEnumerator ()
+        public IEnumerator<KeyValuePair<LuaObject,LuaObject>> GetEnumerator ()
         {
-			return AsTable ().Values.GetEnumerator ();
+			var table = luaobj as IEnumerable<KeyValuePair<LuaObject,LuaObject>>;
+			if (table == null)
+				return null;
+			
+			return table.GetEnumerator ();
         }
 		
 		IEnumerator IEnumerable.GetEnumerator ()
@@ -173,33 +191,63 @@ namespace AluminumLua {
 			return GetEnumerator ();
 		}
 		
-        public LuaObject this[int ix]
-        {
-            get {
-                return AsTable ().Values.ElementAtOrDefault (ix);
-            }
-        }
-		
-        public LuaObject this[string index]
-        {
-            get {				
+		public LuaObject this [LuaObject key] {
+			get {
+				var table = AsTable ();
+				if (table == null)
+					throw new LuaException ("cannot index non-table");
+				
+				// we don't care whether the get was successful, because the default LuaObject is nil.
 				LuaObject result;
-				AsTable ().TryGetValue (index, out result);
+				table.TryGetValue (key, out result);
 				return result;
-            }
-        }
-
+			}
+			set {
+				var table = AsTable ();
+				if (table == null)
+					throw new LuaException ("cannot index non-table");
+				
+				table [key] = value;
+			}
+		}
+		
+		// Unlike AsString, this will return string representations of nil, tables, and functions
 		public override string ToString ()
 		{
 			if (IsNil)
 				return "nil";
 			
 			if (IsTable)
-				return "{ " + string.Join (", ", AsTable ().Select (kv => string.Format ("[\"{0}\"]={1}", kv.Key, kv.Value.ToString ())).ToArray ()) + " }";
+				return "{ " + string.Join (", ", AsTable ().Select (kv => string.Format ("[{0}]={1}", kv.Key, kv.Value.ToString ())).ToArray ()) + " }";
+			
+			if (IsFunction)
+				return AsFunction ().Method.ToString ();
 			
 			return luaobj.ToString ();
 		}
+		
+		// See last paragraph in http://www.lua.org/pil/13.2.html
+		public bool Equals (LuaObject other)
+		{
+			// luaobj will not be null unless type is Nil
+			return (other.type == type) && (luaobj == null || luaobj.Equals (other.luaobj));
+		}
+		
+		public override bool Equals (object obj)
+		{
+			if (obj is LuaObject)
+				return Equals ((LuaObject)obj);
+			
+			// FIXME: It would be nice to automatically compare other types (strings, ints, doubles, etc.) to LuaObjects.
+			return false;
+		}
 
+		public override int GetHashCode ()
+		{
+			unchecked {
+				return (luaobj != null ? luaobj.GetHashCode () : 0) ^ type.GetHashCode ();
+			}
+		}
     }
 }
 

@@ -23,28 +23,43 @@
  */
 
 using System;
+using System.Collections.Generic;
 
 namespace AluminumLua.Executors {
+	
+	using LuaTable     = IDictionary<LuaObject,LuaObject>;
 	
 	// All IExecutor implementations should have a constructor that takes a LuaContext
 	public interface IExecutor {
 		
 		// scoping:
 		void PushScope                      ();
-		void PushFunctionScope              (string identifier, string [] argNames);
+		void PushBlockScope                 (); // a block of code that may be repeated (ex. loop body)
+		void PushFunctionScope              (string [] argNames);
 		LuaContext CurrentScope             { get; }
-		void PopScope                       ();
+		void PopScope                       (); // if it was a function or block scope, function object is left on stack
 
 		
 		// expressions:
-		void Constant                       (LuaObject value);
-		void Variable                       (string identifier);
-		void Call                           (string identifier, int argCount);
-		void PopStack                       (); // <- turn above into a statement
+		void Constant                       (LuaObject value); // pushes value
+		void Variable                       (string identifier); // pushes value
+		void Call                           (int argCount); // pops arg * argCount, pops function; pushes return value
+		void TableCreate                    (int initCount); // pops (value, key) * initCount; pushes table
+		void TableGet                       (); // pops key, pops table, pushes value
+		
+		void Concatenate                    (); // pops <value2>, pops <value1>; pushes <value1><value2>
+		void Negate                         (); // pops value; pushes negated value (boolean)
+		
+		void Add                            (); // pops <val2>, pops <val1>; pushes <val1> + <val2> (numeric)
+		void Subtract                       (); // pops <val2>, pops <val1>; pushes <val1> - <val2> (numeric)
+		void Multiply                       (); // pops <val2>, pops <val1>; pushes <val1> * <val2> (numeric)
+		void Divide                         (); // pops <val2>, pops <val1>; pushes <val1> / <val2> (numeric)
 		
 		// statements:
-		void Assign (string identifier, bool localScope);
-		void Return ();
+		void PopStack                       (); // pops and discards value
+		void Assign                         (string identifier, bool localScope); // pops a value
+		void TableSet                       (); // pops value, pops key, pops table, sets table.key = value
+		void Return                         (); // pops a value
 		
 		// to execute: (some IExecutors - like InterpreterExecutor - may have executed instructions as they came in)
 		LuaObject Result ();

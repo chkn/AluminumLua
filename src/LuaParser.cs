@@ -42,7 +42,7 @@ namespace AluminumLua {
 		protected string file_name;
 		protected TextReader input;
 		
-		protected bool interactive, eof;
+		protected bool eof;
 		protected int row, col, scope_count;
 		
 		protected IExecutor CurrentExecutor { get; set; }
@@ -66,7 +66,6 @@ namespace AluminumLua {
 		{
 			this.file_name = "stdin";
 			this.input = new StreamReader (Console.OpenStandardInput ());
-			this.interactive = true;
 			
 			this.CurrentExecutor = executor;
 		}
@@ -78,8 +77,13 @@ namespace AluminumLua {
 		
 		public void Parse ()
 		{
+			Parse (false);
+		}
+		
+		public void Parse (bool interactive)
+		{
 			do {
-				
+
 				var identifier = ParseLVal ();
 				
 				if (eof)
@@ -88,10 +92,9 @@ namespace AluminumLua {
 				switch (identifier) {
 				
 				case "function":
-					scope_count++;
-					ParseFunctionDef ();
+					ParseFunctionDefStatement (false);
 					break;
-				
+					
 				case "do":
 					scope_count++;
 					CurrentExecutor.PushScope ();
@@ -107,8 +110,10 @@ namespace AluminumLua {
 					
 				case "local":
 					var name = ParseLVal ();
-					if (!TryAssign (name, true))
-						Err ("unexpected 'local'");
+					if (name == "function")
+						ParseFunctionDefStatement (true);
+					else
+						ParseAssign (name, true);
 					break;
 					
 				case "return":
@@ -117,13 +122,13 @@ namespace AluminumLua {
 					break;
 					
 				default:
-					if (TryFunctionCall (identifier)) {
-						CurrentExecutor.PopStack ();
+					if (Peek () == '=') {
+						ParseAssign (identifier, false);
 						break;
 					}
 					
-					if (!TryAssign (identifier, false))
-						Err ("unknown identifier '{0}'", identifier);
+					CurrentExecutor.Variable (identifier);
+					ParseLValOperator ();
 					break;
 				}
 				
@@ -132,45 +137,160 @@ namespace AluminumLua {
 		
 		protected string ParseLVal ()
 		{
-			var val = ParseOne (false) as string;
+			var val = ParseOne (false);
 			if (val == null && !eof)
 				Err ("expected identifier");
 			
 			return val;
 		}
 		
-		// FIXME: handle operators like concatenation and addition, etc.
-		protected void ParseRVal ()
+		protected void ParseLValOperator ()
 		{
-			var expr = ParseOne (true);
+			var isTerminal = false;
 			
-			if (expr is string) {
-				// function call or variable
+			while (true) {
 				
-				if (!TryFunctionCall ((string)expr)) {
+				switch (Peek ()) {
 					
-					CurrentExecutor.Variable ((string)expr);
+				case '[':
+				case '.':
+					ParseTableAccess ();
+					isTerminal = false;
+					
+					// table assign is special
+					if (Peek () == '=') {
+						Consume ();
+						ParseRVal ();
+						CurrentExecutor.TableSet ();
+						return;
+					}
+					break;
+					
+				case '(':
+				case '{':
+				case '"':
+				case '\'':
+					ParseCall ();
+					isTerminal = true;
+					break;
+				
+				default:
+					if (isTerminal) {
+						CurrentExecutor.PopStack ();
+						return;
+					}
+					Err ("syntax error");
+					break;
 				}
-					
-			} else {
-			
-				CurrentExecutor.Constant ((LuaObject)expr);
 			}
 		}
 		
-		protected bool TryAssign (string identifier, bool localScope)
+		protected void ParseRVal ()
 		{
-			if (Peek () != '=')
+			var identifier = ParseOne (true);
+			
+			if (identifier != null) {
+				switch (identifier) {
+					
+				case "function":
+					var currentScope = scope_count;
+					CurrentExecutor.PushFunctionScope (ParseArgDefList ());
+					scope_count++;
+					
+					while (scope_count > currentScope)
+						Parse (true);
+					break;
+					
+				case "not":
+					ParseRVal ();
+					CurrentExecutor.Negate ();
+					break;
+					
+				default:
+					CurrentExecutor.Variable (identifier);
+					break;
+				}
+			}
+			
+			while (TryParseOperator ()) { /* do it */ }
+		}
+					
+		protected bool TryParseOperator ()
+		{
+			var next = Peek ();
+			
+			switch (next) {
+				
+			case '[':
+				ParseTableAccess ();
+				break;
+				
+			case '.':
+				ParseTableAccessOrConcatenation ();
+				break;
+				
+			case '(':
+			case '{':
+			case '"':
+			case '\'':
+				ParseCall ();
+				break;
+					
+			// FIXME: ORDER OF OPERATIONS!
+			case '+':
+				Consume ();
+				ParseRVal ();
+				CurrentExecutor.Add ();
+				break;
+				
+			case '-':
+				Consume ();
+				ParseRVal ();
+				CurrentExecutor.Subtract ();
+				break;
+				
+			case '*':
+				Consume ();
+				ParseRVal ();
+				CurrentExecutor.Multiply ();
+				break;
+				
+			case '/':
+				Consume ();
+				ParseRVal ();
+				CurrentExecutor.Divide ();
+				break;
+				
+			case '=':
+				Consume ();
+				if (Peek () != '=')
+					Err ("unexpected '='");
+				throw new NotImplementedException ("equality");
+				break;
+				
+			case '~':
+				Consume ();
+				if (Peek () != '=')
+					Err ("unexpected '~'");
+				throw new NotImplementedException ("inequality");
+				break;
+				
+			default:
 				return false;
-						
-			Consume ();
-			ParseRVal ();
-			CurrentExecutor.Assign (identifier, localScope);
+			}
 			
 			return true;
 		}
 		
-		protected bool TryFunctionCall (string identifier)
+		protected void ParseAssign (string identifier, bool localScope)
+		{
+			Consume ('=');
+			ParseRVal (); // push value
+			
+			CurrentExecutor.Assign (identifier, localScope);
+		}
+		
+		protected void ParseCall ()
 		{
 			int argCount = 0;
 			var next = Peek ();
@@ -207,19 +327,52 @@ namespace AluminumLua {
 				
 			} else {
 				
-				return false;
+				Err ("expecting string, table, or '('");
 			}
 			
-			if (!CurrentExecutor.CurrentScope.IsDefined (identifier))
-				Err ("'{0}' is not defined", identifier);
-			
-			CurrentExecutor.Call (identifier, argCount);
-			return true;
+			CurrentExecutor.Call (argCount);
 		}
-					
-		protected string ParseFunctionDef ()
+		
+		protected void ParseFunctionDefStatement (bool localScope)
 		{
-			var funcName = ParseLVal ();
+			var name = ParseLVal ();
+			var next = Peek ();
+			bool isTableSet = (next == '.');
+			
+			if (isTableSet) {
+				
+				CurrentExecutor.Variable (name); // push (first) table
+				Consume (); // '.'
+				CurrentExecutor.Constant (ParseLVal ()); // push key
+				
+				next = Peek ();
+			
+				while (next == '.') {
+					
+					CurrentExecutor.TableGet (); // push (subsequent) table
+					Consume (); // '.'
+					CurrentExecutor.Constant (ParseLVal ()); // push key
+					
+					next = Peek ();
+				}
+			}
+			
+			var currentScope = scope_count;
+			CurrentExecutor.PushFunctionScope (ParseArgDefList ());
+			scope_count++;
+			
+			while (scope_count > currentScope)
+				Parse (true);
+			
+			if (isTableSet)
+				CurrentExecutor.TableSet ();
+			else
+				CurrentExecutor.Assign (name, localScope);
+		}
+		
+		// parses named argument list in func definition
+		protected string [] ParseArgDefList ()
+		{
 			Consume ('(');
 			
 			var args = new List<string> ();
@@ -241,15 +394,65 @@ namespace AluminumLua {
 			}
 			
 			Consume (')');
-			CurrentExecutor.PushFunctionScope (funcName, args.ToArray ());
-			return funcName;
+			return args.ToArray ();
 		}
 		
-		// Identifiers come out as strings; everything else as LuaObject
-		protected object ParseOne (bool expr) 
+		// assumes that the table has already been pushed
+		protected void ParseTableAccess ()
+		{
+			var next = Peek ();
+			
+			if (next != '[' && next != '.')
+				Err ("expected '[' or '.'");
+				
+			Consume ();
+			
+			switch (next) {
+				
+			case '[':
+				ParseRVal (); // push key
+				Consume (']');
+				break;
+				
+			case '.':
+				CurrentExecutor.Constant (ParseLVal ()); // push key
+				break;
+				
+			}
+			
+			if (Peek () != '=')
+				CurrentExecutor.TableGet ();
+		}
+		
+		// assumes that the first item has already been pushed
+		protected void ParseTableAccessOrConcatenation ()
+		{
+			Consume ('.');
+			var next = Peek ();
+			
+			if (next == '.') {
+				// concatenation
+				
+				Consume ();
+				ParseRVal ();
+				CurrentExecutor.Concatenate ();
+			
+			} else {
+				// table access
+				
+				CurrentExecutor.Constant (ParseLVal ());
+				CurrentExecutor.TableGet ();
+				
+			}
+		}
+		
+		// -----
+		
+		// Parses a single value or identifier
+		// Identifiers come out as strings
+		protected string ParseOne (bool expr) 
 		{
 		top:
-			object val;
 			var la = Peek ();
 			switch (la) {
 
@@ -260,75 +463,70 @@ namespace AluminumLua {
 				goto top;
 
 			case '-':
-				if (expr) {
-					// speculatively parse number (might also be comment)
-					val = ConsumeNumberLiteral ();
-					if (val != null)
-						return val;
+				Consume ();
+				if (Peek () == '-') {
+					ParseComment ();
+					goto top;
+					
+				} else if (expr) {
+					
+					ParseRVal ();
+					CurrentExecutor.Constant (LuaObject.FromNumber (-1));
+					CurrentExecutor.Multiply ();	
 				}
-				ConsumeComment ();
-				goto top;
+				break;
 
-			case '"' : if (expr) return ConsumeStringLiteral (); break;
-			case '\'': if (expr) return ConsumeStringLiteral (); break;
-			case '{' : if (expr) return ConsumeTableLiteral (); break;
+			case '"' : if (expr) CurrentExecutor.Constant (ParseStringLiteral ()); break;
+			case '\'': if (expr) CurrentExecutor.Constant (ParseStringLiteral ()); break;
+			case '{' : if (expr) ParseTableLiteral (); break;
 			
 			case '(':
 				if (expr) {
 					Consume ();
-					val = ParseOne (true);
+					ParseRVal ();
 					Consume (')');
-					return val;
 				}
 				break;
 				
 			default:
 				if (char.IsLetter (la))
-					return ConsumeIdentifier ();
+					return ParseIdentifier ();
 				
-				if (expr && (char.IsDigit (la) || la == '.' || la == '-'))
-					return ConsumeNumberLiteral ();
-				
-				Err ("unexpected '{0}'", la);
+				if (expr && (char.IsDigit (la) || la == '.'))
+					CurrentExecutor.Constant (ParseNumberLiteral ());
+				else
+					Err ("unexpected '{0}'", la);
 				break;
 			}
 			
 			return null; //?
 		}
 		
-		// FIXME: Allow real RVals (ie. results from evaluating functions) to be items in tables
 		// http://www.lua.org/pil/3.6.html
-		protected LuaObject ConsumeTableLiteral ()
-		{
-			var table = new Dictionary<string, LuaObject>();
-			string name = null;
-			int i = 0;
-			
+		protected void ParseTableLiteral ()
+		{	
 			Consume ('{');
+			
+			int i = 1;
+			int count = 0;
 			var next = Peek ();
 			
 			while (next != '}' && !eof) {
+				count++;
 				
 				if (next == '[') {
 				    Consume ();
-					name = ConsumeStringLiteral ().AsString ();
+					ParseRVal ();
 					Consume (']');
 					Consume ('=');
+					
+				} else { //array style
+				
+					CurrentExecutor.Constant (LuaObject.FromNumber (i++));
 				}
 				
-				var item = ParseOne (true);
-				if (item is string) {
-					
-					name = (string)item;
-					Consume ('=');
-					
-					item = ParseOne (true);
-				}
+				ParseRVal ();
 				
-				table.Add (name ?? i.ToString (), (LuaObject)item);
-				
-				i++;
-				name = null;
 				next = Peek ();
 				if (next == ',') {
 					
@@ -341,11 +539,12 @@ namespace AluminumLua {
 				}
             }
 			
+			CurrentExecutor.TableCreate (count);
+			
 			Consume ('}');
-            return LuaObject.FromTable (table);
 		}
 		
-		protected LuaObject? ConsumeNumberLiteral ()
+		protected LuaObject ParseNumberLiteral ()
 		{
 			var next = Peek ();
 			var sb = new StringBuilder ();
@@ -356,17 +555,14 @@ namespace AluminumLua {
 				next = Peek (true);
 			}
 			
-			double val;
-			if (double.TryParse (sb.ToString (), out val))
-				return LuaObject.FromNumber (val);
-			
-			return null;
+			var val = double.Parse (sb.ToString ());
+			return LuaObject.FromNumber (val);
 		}
 		
 		
 		// FIXME: Handle multi line strings
 		// http://www.lua.org/pil/2.4.html
-		protected LuaObject ConsumeStringLiteral ()
+		protected LuaObject ParseStringLiteral ()
 		{
 			var next = Peek ();
 			var sb = new StringBuilder ();
@@ -413,7 +609,7 @@ namespace AluminumLua {
 			return LuaObject.FromString (sb.ToString ());
 		}
 		
-		protected string ConsumeIdentifier ()
+		protected string ParseIdentifier ()
 		{
 			var next = Peek ();
 			var sb = new StringBuilder ();
@@ -427,10 +623,11 @@ namespace AluminumLua {
 			return sb.ToString ();
 		}
 		
-		protected void ConsumeComment ()
+		protected void ParseComment ()
 		{
 			Consume ('-');
-			Consume ('-');
+			if (Peek () == '-')
+					Consume ();
 			
 			if (Consume () == '[' && Consume () == '[') {
 				while (!eof && (Consume () != ']' || Consume () != ']')) { /* consume entire block comment */; }
@@ -440,6 +637,8 @@ namespace AluminumLua {
 				row++;
 			}
 		}
+		
+		// scanner primitives:
 		
 		protected void Consume (char expected)
 		{
@@ -514,7 +713,7 @@ namespace AluminumLua {
 		protected void Err (string message, params object [] args)
 		{
 			Consume ();
-			throw new LuaException (file_name, row, col, string.Format (message, args));
+			throw new LuaException (file_name, row, col - 1, string.Format (message, args));
 		}
 	}
 	
