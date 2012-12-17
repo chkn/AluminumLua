@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>AluminumLua</id>
+    <version>1.0.0.0</version>
+    <title>AluminumLua</title>
+    <authors>chkn</authors>
+    <owners>gleblebedev</owners>
+    <projectUrl>https://github.com/gleblebedev/AluminumLua</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A fast, lightweight Lua scripting engine written entirely in C#.</description>
+    <releaseNotes />
+    <copyright>Copyright 2012 chkn</copyright>
+    <tags>Lua</tags>
+  </metadata>
+</package>
