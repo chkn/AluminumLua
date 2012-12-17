@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{BAFD1B0D-16E3-4B17-BCD7-53C5FE4B6AB7}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>AluminumLua</RootNamespace>
+    <AssemblyName>AluminumLua</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\..\nuget\lib\net35\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\..\nuget\lib\net35\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>AluminiumLua.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\AssemblyInfo.cs">
+      <Link>Properties\AssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Executors\CompilerExecutor.cs">
+      <Link>Executors\CompilerExecutor.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Executors\DefaultExecutor.cs">
+      <Link>Executors\DefaultExecutor.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Executors\ExpressionTrees\ExpressionCompiler.cs">
+      <Link>Executors\ExpressionTrees\ExpressionCompiler.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Executors\ExpressionTrees\ExpressionVisitor.cs">
+      <Link>Executors\ExpressionTrees\ExpressionVisitor.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Executors\IExecutor.cs">
+      <Link>Executors\IExecutor.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Executors\InterpreterExecutor.cs">
+      <Link>Executors\InterpreterExecutor.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\BasicLibrary.cs">
+      <Link>Libraries\BasicLibrary.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\Libraries\IoLibrary.cs">
+      <Link>Libraries\IoLibrary.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\LuaContext.cs">
+      <Link>LuaContext.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\LuaObject.cs">
+      <Link>LuaObject.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\LuaParser.cs">
+      <Link>LuaParser.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\LuaSettings.cs">
+      <Link>LuaSettings.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AluminiumLua.snk" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
