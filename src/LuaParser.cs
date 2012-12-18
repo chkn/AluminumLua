@@ -38,10 +38,17 @@ using AluminumLua.Executors;
 
 namespace AluminumLua {
 	
-	public class LuaParser {
+	public class LuaParser: IDisposable
+	{
+		~LuaParser()
+		{
+			this.Dispose(false);
+		}
 		
 		protected string file_name;
 		protected TextReader input;
+
+		private bool closeInputStream;
 		
 		protected bool eof;
 		protected int row, col, scope_count;
@@ -52,6 +59,7 @@ namespace AluminumLua {
 		{
 			this.file_name = Path.GetFileName (file);
 			this.input = File.OpenText (file);
+			this.closeInputStream = true;
 			this.row = 1;
 			this.col = 1;
 			
@@ -68,6 +76,16 @@ namespace AluminumLua {
 			this.file_name = "stdin";
 			this.input = new StreamReader (Console.OpenStandardInput ());
 			
+			this.CurrentExecutor = executor;
+		}
+
+		public LuaParser(LuaContext ctx, TextReader stream):this(LuaSettings.Executor (ctx), stream)
+		{
+		}
+		public LuaParser(IExecutor executor, TextReader stream)
+		{
+			this.file_name = "stream";
+			this.input = stream;
 			this.CurrentExecutor = executor;
 		}
 		
@@ -746,6 +764,22 @@ namespace AluminumLua {
 			Consume ();
 			throw new LuaException (file_name, row, col - 1, string.Format (message, args));
 		}
+
+		#region Implementation of IDisposable
+
+		public void Dispose()
+		{
+			this.Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		public void Dispose(bool isManaged)
+		{
+			if (this.closeInputStream)
+				input.Close();
+		}
+
+		#endregion
 	}
 	
 	public class LuaException : Exception {

@@ -79,10 +79,19 @@ namespace AluminumLua {
 		{
 			return FromBool (bln);
 		}
+
+		public static LuaObject FromDelegate(Delegate a)
+		{
+			return FromFunction((args) => DelegateAdapter(a, args));
+		}
+
 		public static LuaObject FromObject (object obj)
 		{
 			if (obj == null) 
 				return Nil;
+
+			if (obj is LuaObject)
+				return (LuaObject)obj;
 
 			if (obj is bool) 
 				return FromBool((bool)obj);
@@ -107,7 +116,7 @@ namespace AluminumLua {
 				var @delegate = obj as Delegate;
 				if (@delegate != null)
 				{
-					return FromFunction((args) => DelegateAdapter(@delegate, args));
+					return FromDelegate(@delegate);
 				}
 			}
 
@@ -135,7 +144,7 @@ namespace AluminumLua {
 
 		private static LuaObject DelegateAdapter(Delegate @delegate, IEnumerable<LuaObject> args)
 		{
-			return FromObject(@delegate.DynamicInvoke(from a in args select a.luaobj));
+			return FromObject(@delegate.DynamicInvoke((from a in args select a.luaobj).ToArray()));
 		}
 
 		public static LuaObject FromNumber (double number)

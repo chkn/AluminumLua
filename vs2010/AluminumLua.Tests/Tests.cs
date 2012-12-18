@@ -1,4 +1,7 @@
-﻿using NUnit.Framework;
+﻿using System;
+using System.IO;
+
+using NUnit.Framework;
 
 namespace AluminumLua.Tests
 {
@@ -57,6 +60,26 @@ namespace AluminumLua.Tests
 			parser.Parse();
 
 			Assert.AreEqual(100, context.Get("Account").AsTable()["balance"].AsNumber());
+		}
+
+		[Test]
+		public void MethodBinding()
+		{
+			LuaParser parser;
+
+			var context = new LuaContext();
+			context.AddBasicLibrary();
+			context.AddIoLibrary();
+			double res = 0;
+			var func = (Func<double, double>)((a) =>
+				{
+					res = a;
+					return a + 1;
+				});
+			context.SetGlobal("test", LuaObject.FromDelegate(func));
+			parser = new LuaParser(context, new StringReader("test(123)"));
+			parser.Parse();
+			Assert.AreEqual(123.0,res);
 		}
 	}
 }
