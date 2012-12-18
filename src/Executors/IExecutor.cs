@@ -63,6 +63,8 @@ namespace AluminumLua.Executors {
 		
 		// to execute: (some IExecutors - like InterpreterExecutor - may have executed instructions as they came in)
 		LuaObject Result ();
+
+		void ColonOperator();
 	}
 }
 

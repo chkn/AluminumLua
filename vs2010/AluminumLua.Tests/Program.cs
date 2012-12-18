@@ -9,6 +9,8 @@ namespace AluminumLua.Tests
 	{
 		static void Main(string[] args)
 		{
+			var t = new Tests();
+			t.HelloColonOperator();
 		}
 	}
 }

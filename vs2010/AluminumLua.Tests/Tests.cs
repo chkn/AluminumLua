@@ -43,5 +43,20 @@ namespace AluminumLua.Tests
 			parser = new LuaParser(context, "helloworld.lua");
 			parser.Parse();
 		}
+
+		[Test]
+		public void HelloColonOperator()
+		{
+			LuaParser parser;
+
+			var context = new LuaContext();
+			context.AddBasicLibrary();
+			context.AddIoLibrary();
+
+			parser = new LuaParser(context, "colonoperator.lua");
+			parser.Parse();
+
+			Assert.AreEqual(100, context.Get("Account").AsTable()["balance"].AsNumber());
+		}
 	}
 }

@@ -78,8 +78,9 @@ namespace AluminumLua.Executors {
 			
 			for (var i = argCount - 1; i >= 0; i--)
 				args [i] = stack.Pop ();
-			
-			stack.Push (stack.Pop ().AsFunction () (args));
+
+			var function = stack.Pop();
+			stack.Push(function.AsFunction()(args));
 		}
 		
 		public virtual void TableCreate (int initCount)
@@ -183,7 +184,14 @@ namespace AluminumLua.Executors {
 			
 			return LuaObject.Nil;
 		}
-		
+
+		public void ColonOperator()
+		{
+			var key = stack.Pop();
+			var table = stack.Pop();
+			stack.Push(table[key]);
+			stack.Push(table);
+		}
 	}
 }
 

@@ -26,6 +26,7 @@
 // For instance, there is little support for Lua statement types beside function calls
 
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq.Expressions;
 using System.Collections;
@@ -165,12 +166,15 @@ namespace AluminumLua {
 						return;
 					}
 					break;
-					
+				case ':':
+					ParseColonOperator();
+					isTerminal = true;
+					break;
 				case '(':
 				case '{':
 				case '"':
 				case '\'':
-					ParseCall ();
+					ParseCall (0);
 					isTerminal = true;
 					break;
 				
@@ -228,12 +232,15 @@ namespace AluminumLua {
 			case '.':
 				ParseTableAccessOrConcatenation ();
 				break;
+			case ':':
+				this.ParseColonOperator();
+				break;
 				
 			case '(':
 			case '{':
 			case '"':
 			case '\'':
-				ParseCall ();
+				ParseCall (0);
 				break;
 					
 			// FIXME: ORDER OF OPERATIONS!
@@ -263,7 +270,8 @@ namespace AluminumLua {
 				
 			case '=':
 				Consume ();
-				if (Peek () != '=')
+				var equalityPeek = Peek();
+				if (equalityPeek != '=')
 					Err ("unexpected '='");
 				throw new NotImplementedException ("equality");
 				break;
@@ -290,16 +298,16 @@ namespace AluminumLua {
 			CurrentExecutor.Assign (identifier, localScope);
 		}
 		
-		protected void ParseCall ()
+		protected void ParseCall (int args)
 		{
-			int argCount = 0;
+			int argCount = args;
 			var next = Peek ();
 			
 			if (next == '"' || next == '\'' || next == '{') {
 				// function call with 1 arg only.. must be string or table
 
 				ParseRVal ();
-				argCount = 1;
+				++argCount;
 					
 			} else if (next == '(') {
 				// function call
@@ -310,7 +318,7 @@ namespace AluminumLua {
 				while (next != ')') {
 				
 					ParseRVal ();
-					argCount++;
+					++argCount;
 					
 					next = Peek ();
 					if (next == ',') {
@@ -395,6 +403,29 @@ namespace AluminumLua {
 			
 			Consume (')');
 			return args.ToArray ();
+		}
+
+		protected void ParseColonOperator ()
+		{
+			var next = Peek();
+
+			if (next != ':')
+				Err("expected ':'");
+
+
+			Consume();
+
+			CurrentExecutor.Constant(ParseLVal()); // push key
+			CurrentExecutor.ColonOperator();
+
+			next = Peek();
+
+			if (next != '(')
+				Err("expected '('");
+
+			this.ParseCall(1);
+
+			//throw new NotImplementedException("colon operator is not implemented yet");
 		}
 		
 		// assumes that the table has already been pushed
@@ -554,8 +585,8 @@ namespace AluminumLua {
 				sb.Append (next);
 				next = Peek (true);
 			}
-			
-			var val = double.Parse (sb.ToString ());
+
+			var val = double.Parse(sb.ToString(), CultureInfo.InvariantCulture);
 			return LuaObject.FromNumber (val);
 		}
 		

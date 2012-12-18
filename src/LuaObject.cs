@@ -26,6 +26,7 @@ using System;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace AluminumLua {
 	
@@ -78,7 +79,65 @@ namespace AluminumLua {
 		{
 			return FromBool (bln);
 		}
-		
+		public static LuaObject FromObject (object obj)
+		{
+			if (obj == null) 
+				return Nil;
+
+			if (obj is bool) 
+				return FromBool((bool)obj);
+
+			{
+				var str = obj as string;
+				if (str != null)
+				{
+					return FromString(str);
+				}
+			}
+
+			{
+				var @delegate = obj as LuaFunction;
+				if (@delegate != null)
+				{
+					return FromFunction(@delegate);
+				}
+			}
+
+			{
+				var @delegate = obj as Delegate;
+				if (@delegate != null)
+				{
+					return FromFunction((args) => DelegateAdapter(@delegate, args));
+				}
+			}
+
+			{
+				var dictionary = obj as LuaTable;
+				if (dictionary != null)
+				{
+					return FromTable(dictionary);
+				}
+			}
+
+			if (obj is double) return FromNumber((double)obj);
+			if (obj is float) return FromNumber((float)obj);
+			if (obj is int) return FromNumber((int)obj);
+			if (obj is uint) return FromNumber((uint)obj);
+			if (obj is short) return FromNumber((short)obj);
+			if (obj is ushort) return FromNumber((ushort)obj);
+			if (obj is long) return FromNumber((long)obj);
+			if (obj is ulong) return FromNumber((ulong)obj);
+			if (obj is byte) return FromNumber((byte)obj);
+			if (obj is sbyte) return FromNumber((sbyte)obj);
+			if (obj is Thread) return new LuaObject { luaobj = obj, type = LuaType.thread };
+			return FromUserData(obj);
+		}
+
+		private static LuaObject DelegateAdapter(Delegate @delegate, IEnumerable<LuaObject> args)
+		{
+			return FromObject(@delegate.DynamicInvoke(from a in args select a.luaobj));
+		}
+
 		public static LuaObject FromNumber (double number)
 		{
 			if (number == 0d)
@@ -112,6 +171,13 @@ namespace AluminumLua {
 				return Nil;
 			
 			return new LuaObject { luaobj = table, type = LuaType.table };
+		}
+		public static LuaObject FromUserData(object userdata)
+		{
+			if (userdata == null)
+				return Nil;
+
+			return new LuaObject { luaobj = userdata, type = LuaType.userdata };
 		}
 		public static LuaObject NewTable (params LuaTableItem [] initItems)
 		{
@@ -153,6 +219,12 @@ namespace AluminumLua {
 		public double AsNumber ()
 		{
 			return (double)luaobj;
+		}
+
+		public bool IsUserData { get { return type == LuaType.userdata; } }
+		public object AsUserData()
+		{
+			return luaobj;
 		}
 		
 		public bool IsString   { get { return type == LuaType.@string; } }

@@ -51,6 +51,10 @@
     <Compile Include="Tests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\test\colonoperator.lua">
+      <Link>colonoperator.lua</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="..\..\test\dofile.lua">
       <Link>dofile.lua</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
