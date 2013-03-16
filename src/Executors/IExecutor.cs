@@ -54,7 +54,12 @@ namespace AluminumLua.Executors {
         void Equal                          (); // pops <val2>, pops <val1>; pushes <val1> == <val2> (bool)
         void NotEqual                       (); // pops <val2>, pops <val1>; pushes <val1> != <val2> (bool)
         void IfThenElse                     (); // pops <falseFunc>, pops <trueFunc>, pops <cond>; pushes <cond> ? <trueFunc> : <falseFunc> (function)
-		
+
+        void Greater                        (); // pops <val2>, pops <val1>; pushes <val1> > <val2> (bool)
+        void Smaller                        (); // pops <val2>, pops <val1>; pushes <val1> < <val2> (bool)
+        void GreaterOrEqual                 (); // pops <val2>, pops <val1>; pushes <val1> >= <val2> (bool)
+        void SmallerOrEqual                 (); // pops <val2>, pops <val1>; pushes <val1> <= <val2> (bool)
+
 		void Add                            (); // pops <val2>, pops <val1>; pushes <val1> + <val2> (numeric)
 		void Subtract                       (); // pops <val2>, pops <val1>; pushes <val1> - <val2> (numeric)
 		void Multiply                       (); // pops <val2>, pops <val1>; pushes <val1> * <val2> (numeric)

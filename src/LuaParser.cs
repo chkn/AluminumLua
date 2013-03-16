@@ -288,7 +288,20 @@ namespace AluminumLua {
                 ParseRVal();
                 CurrentExecutor.And();
                 break;
-
+            case '>':
+                Consume();
+                bool OrEqual = Peek() == '=';
+                if (OrEqual) Consume();
+                ParseRVal();
+                if (OrEqual) CurrentExecutor.GreaterOrEqual(); else CurrentExecutor.Greater();
+                break;
+            case '<':
+                Consume();
+                bool OrEqual2 = Peek() == '=';
+                if (OrEqual2) Consume();
+                ParseRVal();
+                if (OrEqual2) CurrentExecutor.SmallerOrEqual(); else CurrentExecutor.Smaller();
+                break;
 			case '=':
 				Consume ();
                 if (Consume() != '=')

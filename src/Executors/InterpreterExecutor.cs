@@ -153,6 +153,35 @@ namespace AluminumLua.Executors {
             if (Cond) Then.Invoke(new LuaObject[] { }); else Else.Invoke(new LuaObject[] { });
         }
 
+        public virtual void Greater()
+        {
+            var val2 = stack.Pop().AsNumber();
+            var val1 = stack.Pop().AsNumber();
+
+            stack.Push(LuaObject.FromBool(val1 > val2));
+        }
+        public virtual void Smaller()
+        {
+            var val2 = stack.Pop().AsNumber();
+            var val1 = stack.Pop().AsNumber();
+
+            stack.Push(LuaObject.FromBool(val1 < val2));
+        }
+        public virtual void GreaterOrEqual()
+        {
+            var val2 = stack.Pop().AsNumber();
+            var val1 = stack.Pop().AsNumber();
+
+            stack.Push(LuaObject.FromBool(val1 >= val2));
+        }
+        public virtual void SmallerOrEqual()
+        {
+            var val2 = stack.Pop().AsNumber();
+            var val1 = stack.Pop().AsNumber();
+
+            stack.Push(LuaObject.FromBool(val1 <= val2));
+        }
+
 		public virtual void Add ()
 		{
 			var val2 = stack.Pop ().AsNumber ();

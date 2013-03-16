@@ -134,6 +134,23 @@ namespace AluminumLua.Executors {
             Target.IfThenElse();
         }
 
+        public virtual void Greater()
+        {
+            Target.Greater();
+        }
+        public virtual void Smaller()
+        {
+            Target.Smaller();
+        }
+        public virtual void GreaterOrEqual()
+        {
+            Target.GreaterOrEqual();
+        }
+        public virtual void SmallerOrEqual()
+        {
+            Target.SmallerOrEqual();
+        }
+
 		public virtual void Add ()
 		{
 			Target.Add ();

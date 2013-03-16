@@ -282,6 +282,35 @@ namespace AluminumLua.Executors {
             ));
         }
 
+        public virtual void Greater()
+        {
+            var val2 = Expression.Call(stack.Pop(), LuaObject_AsNumber);
+            var val1 = Expression.Call(stack.Pop(), LuaObject_AsNumber);
+
+            stack.Push(Expression.Call (LuaObject_FromBool, Expression.GreaterThan(val1, val2)));
+        }
+        public virtual void Smaller()
+        {
+            var val2 = Expression.Call(stack.Pop(), LuaObject_AsNumber);
+            var val1 = Expression.Call(stack.Pop(), LuaObject_AsNumber);
+
+            stack.Push(Expression.Call(LuaObject_FromBool, Expression.LessThan(val1, val2)));
+        }
+        public virtual void GreaterOrEqual()
+        {
+            var val2 = Expression.Call(stack.Pop(), LuaObject_AsNumber);
+            var val1 = Expression.Call(stack.Pop(), LuaObject_AsNumber);
+
+            stack.Push(Expression.Call(LuaObject_FromBool, Expression.GreaterThanOrEqual(val1, val2)));
+        }
+        public virtual void SmallerOrEqual()
+        {
+            var val2 = Expression.Call(stack.Pop(), LuaObject_AsNumber);
+            var val1 = Expression.Call(stack.Pop(), LuaObject_AsNumber);
+
+            stack.Push(Expression.Call(LuaObject_FromBool, Expression.LessThanOrEqual(val1, val2)));
+        }
+
 		public virtual void Add ()
 		{
 			var val2 = Expression.Call (stack.Pop (), LuaObject_AsNumber);
