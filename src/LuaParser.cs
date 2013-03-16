@@ -128,6 +128,7 @@ namespace AluminumLua {
 				
                 case "if":
                     ParseConditionalStatement();
+                    CurrentExecutor.PopStack();
                     break;
 				default:
 					if (Peek () == '=') {

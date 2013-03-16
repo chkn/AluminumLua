@@ -240,7 +240,7 @@ namespace AluminumLua.Executors {
 		
 		public virtual void Negate ()
 		{
-			stack.Push (Expression.Call (LuaObject_FromBool, Expression.Negate (Expression.Call (stack.Pop (), LuaObject_AsBool))));
+			stack.Push (Expression.Call (LuaObject_FromBool, Expression.Not (Expression.Call (stack.Pop (), LuaObject_AsBool))));
 		}
 
         public virtual void Or()

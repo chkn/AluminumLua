@@ -101,30 +101,90 @@ namespace AluminumLua.Executors.ExpressionTrees {
 		{
 			IL.Emit (OpCodes.Ldarg, Array.IndexOf (arg_names, p.Name));
 		}
-		
+
+        protected override void VisitUnary(UnaryExpression u)
+        {
+            Visit(u.Operand);
+            switch (u.NodeType)
+            {
+                case ExpressionType.Not:
+                    IL.Emit(OpCodes.Not);
+                    break;
+            }
+        }
+
 		protected override void VisitBinary (BinaryExpression b)
 		{
 			Visit (b.Left);
-			Visit (b.Right);
 			
 			switch (b.NodeType) {
 			
 			case ExpressionType.Add:
+                Visit(b.Right);
 				IL.Emit (OpCodes.Add);
 				break;
 			
 			case ExpressionType.Subtract:
+                Visit(b.Right);
 				IL.Emit (OpCodes.Sub);
 				break;
 				
 			case ExpressionType.Multiply:
+                Visit(b.Right);
 				IL.Emit (OpCodes.Mul);
 				break;
 				
 			case ExpressionType.Divide:
+                Visit(b.Right);
 				IL.Emit (OpCodes.Div);
 				break;
-				
+            case ExpressionType.GreaterThan:
+                Visit(b.Right);
+                IL.Emit(OpCodes.Cgt);
+                break;
+            case ExpressionType.GreaterThanOrEqual:
+                Visit(b.Right);
+                IL.Emit(OpCodes.Clt);
+                IL.Emit(OpCodes.Not);
+                break;
+            case ExpressionType.LessThan:
+                Visit(b.Right);
+                IL.Emit(OpCodes.Clt);
+                break;
+            case ExpressionType.LessThanOrEqual:
+                Visit(b.Right);
+                IL.Emit(OpCodes.Cgt);
+                IL.Emit(OpCodes.Not);
+                break;
+            case ExpressionType.AndAlso:
+                var ItsFalse = IL.DefineLabel();
+                var EndAnd = IL.DefineLabel();
+                IL.Emit(OpCodes.Brfalse, ItsFalse);
+                Visit(b.Right);
+                IL.Emit(OpCodes.Br, EndAnd);
+                IL.MarkLabel(ItsFalse);
+                IL.Emit(OpCodes.Ldc_I4_0);
+                IL.MarkLabel(EndAnd);
+                break;
+            case ExpressionType.OrElse:
+                var ItsTrue = IL.DefineLabel();
+                var EndOr = IL.DefineLabel();
+                IL.Emit(OpCodes.Brtrue, ItsTrue);
+                Visit(b.Right);
+                IL.Emit(OpCodes.Br, EndOr);
+                IL.MarkLabel(ItsTrue);
+                IL.Emit(OpCodes.Ldc_I4_1);
+                IL.MarkLabel(EndOr);
+                break;
+            case ExpressionType.Equal:
+                Visit(b.Right);
+                IL.Emit(OpCodes.Ceq);
+                break;
+            case ExpressionType.NotEqual:
+                Visit(b.Right);
+                IL.Emit(OpCodes.Ceq);
+                IL.Emit(OpCodes.Not);
+                break;
 			default:
 				throw new NotImplementedException (b.Type.ToString ());
 			}
@@ -176,6 +236,20 @@ namespace AluminumLua.Executors.ExpressionTrees {
 				IL.Emit (OpCodes.Stelem, item.Type);
 			}
 		}
+
+        protected override void VisitConditional(ConditionalExpression c)
+        {
+            var End = IL.DefineLabel();
+            var IfFalse = IL.DefineLabel();
+            Visit(c.Test);
+
+            IL.Emit(OpCodes.Brfalse, IfFalse);
+            Visit(c.IfTrue);
+            IL.Emit(OpCodes.Br, End);
+            IL.MarkLabel(IfFalse);
+            Visit(c.IfFalse);
+            IL.MarkLabel(End);
+        }
 	}
 }
 
