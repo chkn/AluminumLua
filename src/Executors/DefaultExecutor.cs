@@ -111,7 +111,29 @@ namespace AluminumLua.Executors {
 		{
 			Target.Negate ();
 		}
-		
+
+        public virtual void And() 
+        {
+            Target.And();
+        }
+        public virtual void Or() 
+        {
+            Target.Or();
+        }
+        public virtual void Equal() 
+        {
+            Target.Equal();
+        }
+        public virtual void NotEqual() 
+        {
+            Target.NotEqual();
+        }
+
+        public virtual void IfThenElse()
+        {
+            Target.IfThenElse();
+        }
+
 		public virtual void Add ()
 		{
 			Target.Add ();

@@ -56,6 +56,9 @@ namespace AluminumLua.Executors {
 		private static readonly MethodInfo LuaObject_AsBool      = typeof (LuaObject).GetMethod ("AsBool");
 		private static readonly MethodInfo LuaObject_AsNumber    = typeof (LuaObject).GetMethod ("AsNumber");
 		private static readonly MethodInfo LuaObject_AsFunction  = typeof (LuaObject).GetMethod ("AsFunction");
+
+        private static readonly MethodInfo LuaObject_Equals = typeof(LuaObject).GetMethod("Equals", new Type[] {typeof(LuaObject)});
+
 		private static readonly MethodInfo LuaFunction_Invoke    = typeof (LuaFunction).GetMethod ("Invoke");
 		
 		private static readonly MethodInfo LuaObject_this_get    = typeof (LuaObject).GetProperty ("Item").GetGetMethod ();
@@ -239,7 +242,46 @@ namespace AluminumLua.Executors {
 		{
 			stack.Push (Expression.Call (LuaObject_FromBool, Expression.Negate (Expression.Call (stack.Pop (), LuaObject_AsBool))));
 		}
-		
+
+        public virtual void Or()
+        {
+            var val2 = Expression.Call(stack.Pop(), LuaObject_AsBool);
+            var val1 = Expression.Call(stack.Pop(), LuaObject_AsBool);
+            stack.Push(Expression.Call(LuaObject_FromBool, Expression.OrElse(val1, val2)));
+        }
+
+        public virtual void And()
+        {
+            var val2 = Expression.Call(stack.Pop(), LuaObject_AsBool);
+            var val1 = Expression.Call(stack.Pop(), LuaObject_AsBool);
+            stack.Push(Expression.Call(LuaObject_FromBool, Expression.AndAlso(val1, val2)));
+        }
+
+        public virtual void Equal()
+        {
+            var val2 = stack.Pop();
+            var val1 = stack.Pop();
+            stack.Push(Expression.Call(LuaObject_FromBool, Expression.Call(val1, LuaObject_Equals, val2)));
+        }
+
+        public virtual void NotEqual()
+        {
+            var val2 = stack.Pop();
+            var val1 = stack.Pop();
+            stack.Push(Expression.Call(LuaObject_FromBool, Expression.Not(Expression.Call(val1, LuaObject_Equals, val2))));
+        }
+        public virtual void IfThenElse()
+        {
+            var Else = Expression.Call(stack.Pop(), LuaObject_AsFunction);
+            var Then = Expression.Call(stack.Pop(), LuaObject_AsFunction);
+            var Cond = Expression.Call(stack.Pop(), LuaObject_AsBool);
+            stack.Push(Expression.IfThenElse(
+                Cond, 
+                Expression.Call(Then, LuaFunction_Invoke, Expression.NewArrayInit(typeof(LuaObject), new Expression[]{})), 
+                Expression.Call(Else, LuaFunction_Invoke, Expression.NewArrayInit(typeof(LuaObject), new Expression[]{}))
+            ));
+        }
+
 		public virtual void Add ()
 		{
 			var val2 = Expression.Call (stack.Pop (), LuaObject_AsNumber);

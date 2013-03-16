@@ -237,7 +237,6 @@ namespace AluminumLua {
 		{
 			if (obj is LuaObject)
 				return Equals ((LuaObject)obj);
-			
 			// FIXME: It would be nice to automatically compare other types (strings, ints, doubles, etc.) to LuaObjects.
 			return false;
 		}

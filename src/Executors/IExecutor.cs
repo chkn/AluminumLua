@@ -49,6 +49,11 @@ namespace AluminumLua.Executors {
 		
 		void Concatenate                    (); // pops <value2>, pops <value1>; pushes <value1><value2>
 		void Negate                         (); // pops value; pushes negated value (boolean)
+        void And                            (); // pops <val2>, pops <val1>; pushes <val1> && <val2> (bool)
+        void Or                             (); // pops <val2>, pops <val1>; pushes <val1> || <val2> (bool)
+        void Equal                          (); // pops <val2>, pops <val1>; pushes <val1> == <val2> (bool)
+        void NotEqual                       (); // pops <val2>, pops <val1>; pushes <val1> != <val2> (bool)
+        void IfThenElse                     (); // pops <falseFunc>, pops <trueFunc>, pops <cond>; pushes <cond> ? <trueFunc> : <falseFunc> (function)
 		
 		void Add                            (); // pops <val2>, pops <val1>; pushes <val1> + <val2> (numeric)
 		void Subtract                       (); // pops <val2>, pops <val1>; pushes <val1> - <val2> (numeric)

@@ -42,7 +42,7 @@ namespace AluminumLua {
 		protected string file_name;
 		protected TextReader input;
 		
-		protected bool eof;
+		protected bool eof, OptionKeyword;
 		protected int row, col, scope_count;
 		
 		protected IExecutor CurrentExecutor { get; set; }
@@ -65,8 +65,11 @@ namespace AluminumLua {
 		public LuaParser (IExecutor executor)
 		{
 			this.file_name = "stdin";
+#if WINDOWS_PHONE
+            this.input = Console.In;
+#else
 			this.input = new StreamReader (Console.OpenStandardInput ());
-			
+#endif
 			this.CurrentExecutor = executor;
 		}
 		
@@ -99,12 +102,14 @@ namespace AluminumLua {
 					scope_count++;
 					CurrentExecutor.PushScope ();
 					break;
-					
+
+                case "else":
 				case "end":
 					if (--scope_count < 0) {
 						scope_count = 0;
 						Err ("unexpected 'end'");
 					}
+                    OptionKeyword = identifier == "else";
 					CurrentExecutor.PopScope ();
 					break;
 					
@@ -120,7 +125,10 @@ namespace AluminumLua {
 					ParseRVal ();
 					CurrentExecutor.Return ();
 					break;
-					
+				
+                case "if":
+                    ParseConditionalStatement();
+                    break;
 				default:
 					if (Peek () == '=') {
 						ParseAssign (identifier, false);
@@ -260,19 +268,41 @@ namespace AluminumLua {
 				ParseRVal ();
 				CurrentExecutor.Divide ();
 				break;
-				
+
+            case 'o':
+            case 'O':
+                Consume();
+                if (char.ToLowerInvariant(Consume()) != 'r')
+                    Err("unexpected 'o'");
+                ParseRVal();
+                CurrentExecutor.Or();
+                break;
+
+            case 'a':
+            case 'A':
+                Consume();
+                if (char.ToLowerInvariant(Consume()) != 'n')
+                    Err("unexpected 'a'");
+                if (char.ToLowerInvariant(Consume()) != 'd')
+                    Err("unexpected 'an'");
+                ParseRVal();
+                CurrentExecutor.And();
+                break;
+
 			case '=':
 				Consume ();
-				if (Peek () != '=')
+                if (Consume() != '=')
 					Err ("unexpected '='");
-				throw new NotImplementedException ("equality");
+                ParseRVal();
+                CurrentExecutor.Equal();
 				break;
 				
 			case '~':
 				Consume ();
-				if (Peek () != '=')
+                if (Consume() != '=')
 					Err ("unexpected '~'");
-				throw new NotImplementedException ("inequality");
+				ParseRVal();
+                CurrentExecutor.NotEqual();
 				break;
 				
 			default:
@@ -332,7 +362,43 @@ namespace AluminumLua {
 			
 			CurrentExecutor.Call (argCount);
 		}
-		
+
+        protected void ParseConditionalStatement()
+        {
+            ParseRVal();
+            if (!(
+                char.ToLowerInvariant(Consume()) == 't' &&
+                char.ToLowerInvariant(Consume()) == 'h' &&
+                char.ToLowerInvariant(Consume()) == 'e' &&
+                char.ToLowerInvariant(Consume()) == 'n')) Err("Expected 'then'");
+            
+            var currentScope = scope_count;
+            CurrentExecutor.PushBlockScope();
+            scope_count++;
+
+            while (scope_count > currentScope && !eof)
+                Parse(true);
+            if (eof) { CurrentExecutor.PopScope(); OptionKeyword = false; }
+
+            if (OptionKeyword)
+            {
+                currentScope = scope_count;
+                CurrentExecutor.PushBlockScope();
+                scope_count++;
+
+                while (scope_count > currentScope && !eof)
+                    Parse(true);
+                if (eof) CurrentExecutor.PopScope();
+            }
+            else
+            {
+                CurrentExecutor.PushBlockScope();
+                CurrentExecutor.PopScope();
+            }
+
+            CurrentExecutor.IfThenElse();
+        }
+
 		protected void ParseFunctionDefStatement (bool localScope)
 		{
 			var name = ParseLVal ();

@@ -9,6 +9,13 @@ namespace AluminumLua.Tests
 	{
 		static void Main(string[] args)
 		{
+            var ctx = new AluminumLua.LuaContext();
+            ctx.AddBasicLibrary();
+            ctx.AddIoLibrary();
+            var alua = new AluminumLua.LuaParser(ctx, "test.lua");
+            
+            alua.Parse();
+            Console.ReadKey();
 		}
 	}
 }

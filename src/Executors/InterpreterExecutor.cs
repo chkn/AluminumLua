@@ -116,7 +116,43 @@ namespace AluminumLua.Executors {
 			var val = stack.Pop ().AsBool ();
 			stack.Push (LuaObject.FromBool (!val));
 		}
-		
+
+        public virtual void Or()
+        {
+            var val2 = stack.Pop().AsBool();
+            var val1 = stack.Pop().AsBool();
+            stack.Push(LuaObject.FromBool(val1 || val2));
+        }
+
+        public virtual void And()
+        {
+            var val2 = stack.Pop().AsBool();
+            var val1 = stack.Pop().AsBool();
+            stack.Push(LuaObject.FromBool(val1 && val2));
+        }
+
+        public virtual void Equal()
+        {
+            var val2 = stack.Pop();
+            var val1 = stack.Pop();
+            stack.Push(LuaObject.FromBool(val1.Equals(val2)));
+        }
+
+        public virtual void NotEqual()
+        {
+            var val2 = stack.Pop();
+            var val1 = stack.Pop();
+            stack.Push(LuaObject.FromBool(!val1.Equals(val2)));
+        }
+
+        public virtual void IfThenElse()
+        {
+            var Else = stack.Pop().AsFunction();
+            var Then = stack.Pop().AsFunction();
+            var Cond = stack.Pop().AsBool();
+            if (Cond) Then.Invoke(new LuaObject[] { }); else Else.Invoke(new LuaObject[] { });
+        }
+
 		public virtual void Add ()
 		{
 			var val2 = stack.Pop ().AsNumber ();
