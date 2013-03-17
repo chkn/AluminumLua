@@ -392,7 +392,15 @@ namespace AluminumLua.Executors {
 		{
 			return Compile () (new LuaObject [0]);
 		}
-		
+
+        public void ColonOperator()
+        {
+            var key = stack.Pop();
+            var table = stack.Pop();
+            stack.Push(Expression.Call(table, LuaObject_this_get, key));
+            stack.Push(table);
+        }
+
 		public LuaFunction Compile ()
 		{
 			if (compiled != null)

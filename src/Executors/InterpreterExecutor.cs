@@ -248,7 +248,15 @@ namespace AluminumLua.Executors {
 			
 			return LuaObject.Nil;
 		}
-		
+
+        public void ColonOperator()
+        {
+            var key = stack.Pop();
+            var table = stack.Pop();
+            stack.Push(table[key]);
+            stack.Push(table);
+        }
+
 	}
 }
 

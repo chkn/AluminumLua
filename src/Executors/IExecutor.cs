@@ -70,7 +70,9 @@ namespace AluminumLua.Executors {
 		void Assign                         (string identifier, bool localScope); // pops a value
 		void TableSet                       (); // pops value, pops key, pops table, sets table.key = value
 		void Return                         (); // pops a value
-		
+
+        void ColonOperator();
+
 		// to execute: (some IExecutors - like InterpreterExecutor - may have executed instructions as they came in)
 		LuaObject Result ();
 	}

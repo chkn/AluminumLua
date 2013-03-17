@@ -191,7 +191,12 @@ namespace AluminumLua.Executors {
 		{
 			Target.Return ();
 		}
-		
+
+        public void ColonOperator()
+        {
+            Target.ColonOperator();
+        }
+
 		public virtual LuaObject Result ()
 		{
 			return Target.Result ();
