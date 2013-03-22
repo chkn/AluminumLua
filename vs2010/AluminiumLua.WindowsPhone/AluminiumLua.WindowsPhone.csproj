@@ -110,6 +110,9 @@
     <Compile Include="..\..\src\Libraries\IoLibrary.cs">
       <Link>Libraries\IoLibrary.cs</Link>
     </Compile>
+        <Compile Include="..\..\src\LinkedDictionary.cs">
+      <Link>LinkedDictionary.cs</Link>
+    </Compile>
     <Compile Include="..\..\src\LuaContext.cs">
       <Link>LuaContext.cs</Link>
     </Compile>
