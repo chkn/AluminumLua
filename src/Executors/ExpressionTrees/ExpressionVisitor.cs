@@ -152,6 +152,7 @@ namespace AluminumLua.Executors.ExpressionTrees {
 	    protected virtual void VisitConditional(ConditionalExpression c)
 	    {
 	        this.Visit(c.Test);
+            
 	        this.Visit(c.IfTrue);
 	        this.Visit(c.IfFalse);
 	        throw new NotImplementedException ();

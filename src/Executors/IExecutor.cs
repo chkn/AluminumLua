@@ -49,7 +49,17 @@ namespace AluminumLua.Executors {
 		
 		void Concatenate                    (); // pops <value2>, pops <value1>; pushes <value1><value2>
 		void Negate                         (); // pops value; pushes negated value (boolean)
-		
+        void And                            (); // pops <val2>, pops <val1>; pushes <val1> && <val2> (bool)
+        void Or                             (); // pops <val2>, pops <val1>; pushes <val1> || <val2> (bool)
+        void Equal                          (); // pops <val2>, pops <val1>; pushes <val1> == <val2> (bool)
+        void NotEqual                       (); // pops <val2>, pops <val1>; pushes <val1> != <val2> (bool)
+        void IfThenElse                     (); // pops <falseFunc>, pops <trueFunc>, pops <cond>; pushes <cond> ? <trueFunc> : <falseFunc> (function)
+
+        void Greater                        (); // pops <val2>, pops <val1>; pushes <val1> > <val2> (bool)
+        void Smaller                        (); // pops <val2>, pops <val1>; pushes <val1> < <val2> (bool)
+        void GreaterOrEqual                 (); // pops <val2>, pops <val1>; pushes <val1> >= <val2> (bool)
+        void SmallerOrEqual                 (); // pops <val2>, pops <val1>; pushes <val1> <= <val2> (bool)
+
 		void Add                            (); // pops <val2>, pops <val1>; pushes <val1> + <val2> (numeric)
 		void Subtract                       (); // pops <val2>, pops <val1>; pushes <val1> - <val2> (numeric)
 		void Multiply                       (); // pops <val2>, pops <val1>; pushes <val1> * <val2> (numeric)
@@ -60,7 +70,9 @@ namespace AluminumLua.Executors {
 		void Assign                         (string identifier, bool localScope); // pops a value
 		void TableSet                       (); // pops value, pops key, pops table, sets table.key = value
 		void Return                         (); // pops a value
-		
+
+        void ColonOperator();
+
 		// to execute: (some IExecutors - like InterpreterExecutor - may have executed instructions as they came in)
 		LuaObject Result ();
 	}

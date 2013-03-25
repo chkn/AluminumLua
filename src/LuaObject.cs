@@ -26,6 +26,7 @@ using System;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace AluminumLua {
 	
@@ -78,6 +79,70 @@ namespace AluminumLua {
 		{
 			return FromBool (bln);
 		}
+        public static LuaObject FromDelegate(Delegate a)
+        {
+            return FromFunction((args) => DelegateAdapter(a, args));
+        }
+        public static LuaObject FromObject(object obj)
+        {
+            if (obj == null)
+                return Nil;
+            if (obj is LuaObject)
+                return (LuaObject)obj;
+
+            if (obj is bool)
+                return FromBool((bool)obj);
+
+            {
+                var str = obj as string;
+                if (str != null)
+                {
+                    return FromString(str);
+                }
+            }
+
+            {
+                var @delegate = obj as LuaFunction;
+                if (@delegate != null)
+                {
+                    return FromFunction(@delegate);
+                }
+            }
+
+            {
+                var @delegate = obj as Delegate;
+                if (@delegate != null)
+                {
+                    return FromDelegate(@delegate);
+                }
+            }
+
+            {
+                var dictionary = obj as LuaTable;
+                if (dictionary != null)
+                {
+                    return FromTable(dictionary);
+                }
+            }
+
+            if (obj is double) return FromNumber((double)obj);
+            if (obj is float) return FromNumber((float)obj);
+            if (obj is int) return FromNumber((int)obj);
+            if (obj is uint) return FromNumber((uint)obj);
+            if (obj is short) return FromNumber((short)obj);
+            if (obj is ushort) return FromNumber((ushort)obj);
+            if (obj is long) return FromNumber((long)obj);
+            if (obj is ulong) return FromNumber((ulong)obj);
+            if (obj is byte) return FromNumber((byte)obj);
+            if (obj is sbyte) return FromNumber((sbyte)obj);
+            if (obj is Thread) return new LuaObject { luaobj = obj, type = LuaType.thread };
+            return FromUserData(obj);
+        }
+
+    private static LuaObject DelegateAdapter(Delegate @delegate, IEnumerable<LuaObject> args)
+    {
+        return FromObject(@delegate.DynamicInvoke((from a in args select a.luaobj).ToArray()));
+    }
 		
 		public static LuaObject FromNumber (double number)
 		{
@@ -113,6 +178,13 @@ namespace AluminumLua {
 			
 			return new LuaObject { luaobj = table, type = LuaType.table };
 		}
+        public static LuaObject FromUserData(object userdata)
+        {
+            if (userdata == null)
+                return Nil;
+
+            return new LuaObject { luaobj = userdata, type = LuaType.userdata };
+        }
 		public static LuaObject NewTable (params LuaTableItem [] initItems)
 		{
 			var table = FromTable (new LuaTableImpl ());
@@ -154,7 +226,11 @@ namespace AluminumLua {
 		{
 			return (double)luaobj;
 		}
-		
+		public bool IsUserData { get { return type == LuaType.userdata; } }
+        public object AsUserData()
+        {
+            return luaobj;
+        }
 		public bool IsString   { get { return type == LuaType.@string; } }
 		public string AsString ()
 		{
@@ -237,7 +313,6 @@ namespace AluminumLua {
 		{
 			if (obj is LuaObject)
 				return Equals ((LuaObject)obj);
-			
 			// FIXME: It would be nice to automatically compare other types (strings, ints, doubles, etc.) to LuaObjects.
 			return false;
 		}
