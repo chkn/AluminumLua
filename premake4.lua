@@ -4,7 +4,7 @@
 
 solution "AluminumLua"
 	language "C#"
-	framework "3.5"
+	framework "4.0"
 	configurations { "Release", "Debug" }
 	
 	project "AluminumLua"

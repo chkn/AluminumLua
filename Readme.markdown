@@ -18,7 +18,7 @@ The default execution policy uses the interpreter for the main script body and g
 Dependencies
 ------------
 
-.NET 3.5+ is required on Windows, or Mono 2.6+ anywhere else. There are no other dependencies.
+.NET 4.0+ is required on Windows, or Mono 2.10+ anywhere else. There are no other dependencies.
 
 Embed it
 --------
@@ -47,9 +47,9 @@ Get it here: http://industriousone.com/premake/download
 	premake4 gmake
 	make
 
-### Visual Studio / MonoDevelop / SharpDevelop ###
+### Visual Studio / Xamarin Studio / MonoDevelop / SharpDevelop ###
 
-	premake4 vs2008
+	premake4 vs2010
 	(build the solution using your favorite tool)
 
 The build produces the following products:
