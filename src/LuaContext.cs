@@ -31,11 +31,12 @@ namespace AluminumLua {
 	public partial class LuaContext {
 		// (see libraries)
 		
-		private Dictionary<string,LuaObject> variables;
-		public Dictionary<string,LuaObject> Variables {
+		private IDictionary<string,LuaObject> variables;
+        public IDictionary<string, LuaObject> Variables
+        {
 			get {
 				if (variables == null)
-					variables = new Dictionary<string, LuaObject> ();
+                    variables = new Dictionary<string, LuaObject>();
 				
 				return variables;
 			}
@@ -48,7 +49,7 @@ namespace AluminumLua {
 			this.Parent = parent;
 			
 			if (Parent.variables != null)
-				this.variables = new Dictionary<string, LuaObject> (parent.variables);
+				this.variables = new LinkedDictionary<string, LuaObject> (parent.variables);
 		}
 		
 		public LuaContext ()

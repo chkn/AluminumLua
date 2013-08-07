@@ -111,7 +111,46 @@ namespace AluminumLua.Executors {
 		{
 			Target.Negate ();
 		}
-		
+
+        public virtual void And() 
+        {
+            Target.And();
+        }
+        public virtual void Or() 
+        {
+            Target.Or();
+        }
+        public virtual void Equal() 
+        {
+            Target.Equal();
+        }
+        public virtual void NotEqual() 
+        {
+            Target.NotEqual();
+        }
+
+        public virtual void IfThenElse()
+        {
+            Target.IfThenElse();
+        }
+
+        public virtual void Greater()
+        {
+            Target.Greater();
+        }
+        public virtual void Smaller()
+        {
+            Target.Smaller();
+        }
+        public virtual void GreaterOrEqual()
+        {
+            Target.GreaterOrEqual();
+        }
+        public virtual void SmallerOrEqual()
+        {
+            Target.SmallerOrEqual();
+        }
+
 		public virtual void Add ()
 		{
 			Target.Add ();
@@ -152,7 +191,12 @@ namespace AluminumLua.Executors {
 		{
 			Target.Return ();
 		}
-		
+
+        public void ColonOperator()
+        {
+            Target.ColonOperator();
+        }
+
 		public virtual LuaObject Result ()
 		{
 			return Target.Result ();

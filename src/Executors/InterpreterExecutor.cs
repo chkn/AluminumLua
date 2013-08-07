@@ -78,9 +78,8 @@ namespace AluminumLua.Executors {
 			
 			for (var i = argCount - 1; i >= 0; i--)
 				args [i] = stack.Pop ();
-
-			var function = stack.Pop();
-			stack.Push(function.AsFunction()(args));
+			
+			stack.Push (stack.Pop ().AsFunction () (args));
 		}
 		
 		public virtual void TableCreate (int initCount)
@@ -117,7 +116,72 @@ namespace AluminumLua.Executors {
 			var val = stack.Pop ().AsBool ();
 			stack.Push (LuaObject.FromBool (!val));
 		}
-		
+
+        public virtual void Or()
+        {
+            var val2 = stack.Pop().AsBool();
+            var val1 = stack.Pop().AsBool();
+            stack.Push(LuaObject.FromBool(val1 || val2));
+        }
+
+        public virtual void And()
+        {
+            var val2 = stack.Pop().AsBool();
+            var val1 = stack.Pop().AsBool();
+            stack.Push(LuaObject.FromBool(val1 && val2));
+        }
+
+        public virtual void Equal()
+        {
+            var val2 = stack.Pop();
+            var val1 = stack.Pop();
+            stack.Push(LuaObject.FromBool(val1.Equals(val2)));
+        }
+
+        public virtual void NotEqual()
+        {
+            var val2 = stack.Pop();
+            var val1 = stack.Pop();
+            stack.Push(LuaObject.FromBool(!val1.Equals(val2)));
+        }
+
+        public virtual void IfThenElse()
+        {
+            var Else = stack.Pop().AsFunction();
+            var Then = stack.Pop().AsFunction();
+            var Cond = stack.Pop().AsBool();
+            if (Cond) Then.Invoke(new LuaObject[] { }); else Else.Invoke(new LuaObject[] { });
+        }
+
+        public virtual void Greater()
+        {
+            var val2 = stack.Pop().AsNumber();
+            var val1 = stack.Pop().AsNumber();
+
+            stack.Push(LuaObject.FromBool(val1 > val2));
+        }
+        public virtual void Smaller()
+        {
+            var val2 = stack.Pop().AsNumber();
+            var val1 = stack.Pop().AsNumber();
+
+            stack.Push(LuaObject.FromBool(val1 < val2));
+        }
+        public virtual void GreaterOrEqual()
+        {
+            var val2 = stack.Pop().AsNumber();
+            var val1 = stack.Pop().AsNumber();
+
+            stack.Push(LuaObject.FromBool(val1 >= val2));
+        }
+        public virtual void SmallerOrEqual()
+        {
+            var val2 = stack.Pop().AsNumber();
+            var val1 = stack.Pop().AsNumber();
+
+            stack.Push(LuaObject.FromBool(val1 <= val2));
+        }
+
 		public virtual void Add ()
 		{
 			var val2 = stack.Pop ().AsNumber ();
@@ -185,13 +249,14 @@ namespace AluminumLua.Executors {
 			return LuaObject.Nil;
 		}
 
-		public void ColonOperator()
-		{
-			var key = stack.Pop();
-			var table = stack.Pop();
-			stack.Push(table[key]);
-			stack.Push(table);
-		}
+        public void ColonOperator()
+        {
+            var key = stack.Pop();
+            var table = stack.Pop();
+            stack.Push(table[key]);
+            stack.Push(table);
+        }
+
 	}
 }
 
