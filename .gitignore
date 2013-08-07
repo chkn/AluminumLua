@@ -3,3 +3,6 @@ src/bin
 *.pidb
 *.userdata
 *.userprefs
+*.suo
+*/_ReSharper.*
+*.cache
