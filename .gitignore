@@ -4,6 +4,10 @@
 [Bb]in/
 [Oo]bj/
 
+# NuGet Packages Directory
+packages
+*.nupkg
+
 *.pidb
 *.userdata
 *.userprefs

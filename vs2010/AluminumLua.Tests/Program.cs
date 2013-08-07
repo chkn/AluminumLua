@@ -9,13 +9,21 @@ namespace AluminumLua.Tests
 	{
 		static void Main(string[] args)
 		{
-            var ctx = new AluminumLua.LuaContext();
-            ctx.AddBasicLibrary();
-            ctx.AddIoLibrary();
-            var alua = new AluminumLua.LuaParser(ctx, "test.lua");
-            
-            alua.Parse();
-            Console.ReadKey();
+			TestFile("dofile.lua");
+			TestFile("functionscopes.lua");
+			TestFile("helloworld.lua");
+			TestFile("test.lua");
+			Console.ReadKey();
+		}
+
+		private static void TestFile(string fileName)
+		{
+			var ctx = new AluminumLua.LuaContext();
+			ctx.AddBasicLibrary();
+			ctx.AddIoLibrary();
+			var alua = new AluminumLua.LuaParser(ctx, fileName);
+
+			alua.Parse();
 		}
 	}
 }
