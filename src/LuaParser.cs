@@ -73,7 +73,7 @@ namespace AluminumLua {
         public LuaParser(IExecutor executor)
         {
             this.file_name = "stdin";
-#if WINDOWS_PHONE
+#if WINDOWS_PHONE || SILVERLIGHT
             this.input = Console.In;
 #else
 			this.input = new StreamReader (Console.OpenStandardInput ());

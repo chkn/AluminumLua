@@ -1,8 +1,16 @@
 .DS_Store
-src/bin
+
+# Build Folders (you can keep bin if you'd like, to store dlls and pdbs)
+[Bb]in/
+[Oo]bj/
+
 *.pidb
 *.userdata
 *.userprefs
 *.suo
 */_ReSharper.*
 *.cache
+*.user
+vs2010/AluminumLua.Tests/bin/
+nuget/lib/
+.dll

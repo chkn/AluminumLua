@@ -202,10 +202,7 @@ namespace AluminumLua.Executors {
 			return Target.Result ();
 		}
 
-		public void ColonOperator()
-		{
-			Target.ColonOperator();
-		}
+
 	}
 }
 

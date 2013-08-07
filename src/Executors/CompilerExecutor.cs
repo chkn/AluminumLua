@@ -270,6 +270,12 @@ namespace AluminumLua.Executors {
             var val1 = stack.Pop();
             stack.Push(Expression.Call(LuaObject_FromBool, Expression.Not(Expression.Call(val1, LuaObject_Equals, val2))));
         }
+#if NET35
+        public virtual void IfThenElse()
+        {
+            throw new NotImplementedException();
+        }
+#else
         public virtual void IfThenElse()
         {
             var Else = Expression.Call(stack.Pop(), LuaObject_AsFunction);
@@ -281,6 +287,8 @@ namespace AluminumLua.Executors {
                 Expression.Call(Else, LuaFunction_Invoke, Expression.NewArrayInit(typeof(LuaObject), new Expression[]{}))
             ));
         }
+#endif
+
 
         public virtual void Greater()
         {
