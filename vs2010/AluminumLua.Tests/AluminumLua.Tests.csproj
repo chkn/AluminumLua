@@ -69,9 +69,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AluminumLua.Net40\AluminumLua.Net40.csproj">
+    <ProjectReference Include="..\AluminumLua.Net40\AluminumLua.net40.csproj">
       <Project>{BAFD1B0D-16E3-4B17-BCD7-53C5FE3B6AB7}</Project>
-      <Name>AluminumLua.Net40</Name>
+      <Name>AluminumLua.net40</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
